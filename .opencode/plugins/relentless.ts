@@ -1,46 +1,46 @@
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import type { Plugin } from "@opencode-ai/plugin";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = join(__dirname, "../..");
 
-// Lazy imports for lib modules (avoid top-level failures if not yet created)
-async function getState() {
-  const { readPursuitState, writePursuitState, isHalted, formatStatus } =
-    await import(join(PLUGIN_ROOT, "lib/state.js"));
-  return { readPursuitState, writePursuitState, isHalted, formatStatus };
+async function getState(): Promise<{
+  readPursuitState: (dir?: string) => any;
+  writePursuitState: (dir: string | undefined, state: any) => any;
+  isHalted: (dir?: string) => boolean;
+  formatStatus: (state: any) => string;
+}> {
+  const mod = (await import(join(PLUGIN_ROOT, "lib/dist/state.js"))) as any;
+  return {
+    readPursuitState: mod.readPursuitState,
+    writePursuitState: mod.writePursuitState,
+    isHalted: mod.isHalted,
+    formatStatus: mod.formatStatus,
+  };
 }
 
-async function getCircuitBreaker() {
-  const { CircuitBreaker } = await import(join(PLUGIN_ROOT, "lib/circuit-breaker.js"));
-  return CircuitBreaker;
+async function getCircuitBreaker(): Promise<any> {
+  const mod = (await import(join(PLUGIN_ROOT, "lib/dist/circuit-breaker.js"))) as any;
+  return mod.CircuitBreaker;
 }
 
-async function getConfig(dir) {
-  const { loadConfig } = await import(join(PLUGIN_ROOT, "lib/config.js"));
-  return loadConfig(dir);
+async function getConfig(dir: string | undefined): Promise<any> {
+  const mod = (await import(join(PLUGIN_ROOT, "lib/dist/config.js"))) as any;
+  return mod.loadConfig(dir);
 }
 
-/**
- * Read SKILL.md content, stripping frontmatter.
- */
-function readSkill(skillName) {
+function readSkill(skillName: string): string {
   const path = join(PLUGIN_ROOT, `skills/${skillName}/SKILL.md`);
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
 }
 
-// Per-session circuit breaker instances (keyed by sessionID)
-const circuitBreakers = new Map();
+const circuitBreakers = new Map<string, any>();
+const sessionTokenUsage = new Map<string, number>();
 
-// Per-session cumulative input token tracking (keyed by sessionID)
-const sessionTokenUsage = new Map();
-
-/**
- * Relentless Plugin for OpenCode
- */
-export default async function RelentlessPlugin({ client, directory }) {
+const RelentlessPlugin: Plugin = async ({ client, directory }) => {
   const intentGateContent = readSkill("intent-gate");
   const todoEnforcerContent = readSkill("todo-enforcer");
 
@@ -67,21 +67,19 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
     .join("\n\n");
 
   return {
-    // Inject IntentGate + Todo Enforcer + agent catalog into system prompt
-    "experimental.chat.system.transform": async (input, output) => {
+    "experimental.chat.system.transform": async (_input, output) => {
       (output.system ||= []).push(systemInjection);
     },
 
-    // Preserve orchestration state during session compaction
-    "experimental.session.compacting": async (input, output) => {
+    "experimental.session.compacting": async (_input, output) => {
       try {
         const { readPursuitState } = await getState();
         const state = readPursuitState(directory);
         if (!state) return;
 
         const todos = state.todos || [];
-        const completed = todos.filter((t) => t.status === "completed");
-        const pending = todos.filter((t) => t.status !== "completed");
+        const completed = todos.filter((t: any) => t.status === "completed");
+        const pending = todos.filter((t: any) => t.status !== "completed");
 
         const stateContext = `
 ## Relentless Orchestration State (Preserved Through Compaction)
@@ -90,7 +88,7 @@ Progress: Loop ${state.current_loop || 1}/${state.max_loops || 10}
 Completed: ${completed.length}/${todos.length} todos
 
 Pending todos:
-${pending.map((t) => `  [${t.status}] ${t.id}: ${t.subject}${t.agent ? ` (${t.agent})` : ""}`).join("\n") || "  (none)"}
+${pending.map((t: any) => `  [${t.status}] ${t.id}: ${t.subject}${t.agent ? ` (${t.agent})` : ""}`).join("\n") || "  (none)"}
 
 Circuit breaker: ${state.circuit_breaker?.consecutive_failures || 0}/3 failures
 Last updated: ${state.updated_at}
@@ -99,33 +97,28 @@ IMPORTANT: Continue the pursuit from the state above. Do not restart from the be
 `.trim();
 
         (output.context ||= []).push(stateContext);
-      } catch (e) {
+      } catch {
         // Silently continue if state can't be read
       }
     },
 
-    // Track session events for circuit breaker + token budget (Layer 4)
-    event: async (event) => {
+    event: async ({ event }: { event: any }) => {
       try {
         const sessionID = event?.sessionID;
         if (!sessionID) return;
 
-        // Layer 4: Track token usage from message updates
         if (event.type === "message.updated") {
           const msg = event?.properties?.info;
           if (msg?.role === "assistant" && msg?.tokens?.input) {
             const cumulative = (sessionTokenUsage.get(sessionID) || 0) + msg.tokens.input;
             sessionTokenUsage.set(sessionID, cumulative);
 
-            // Check token budget if we have a circuit breaker for this session
             const cb = circuitBreakers.get(sessionID);
             if (cb) {
-              // Get model context limit (default 128k if unknown)
               const contextLimit = msg?.model?.limit?.context || 128000;
               const usage = cumulative / contextLimit;
               if (!cb.checkTokenBudget(usage)) {
                 cb.markStalled();
-                // State will be persisted on next idle event
               }
             }
           }
@@ -142,7 +135,6 @@ IMPORTANT: Continue the pursuit from the state above. Do not restart from the be
         }
 
         if (event.type === "session.idle" || event.type === "message") {
-          // Snapshot state on session idle
           try {
             const { readPursuitState, writePursuitState } = await getState();
             const state = readPursuitState(directory);
@@ -157,12 +149,12 @@ IMPORTANT: Continue the pursuit from the state above. Do not restart from the be
               }
             }
           } catch {
-            // Silently continue
           }
         }
       } catch {
-        // Event handling errors should never crash the plugin
       }
     },
   };
-}
+};
+
+export default RelentlessPlugin;

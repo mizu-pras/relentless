@@ -7,6 +7,20 @@ OPENCODE_DIR="$HOME/.config/opencode"
 echo "Installing Relentless..."
 echo "Plugin root: $RELENTLESS_DIR"
 
+# Install dependencies and build
+echo "Building TypeScript..."
+(cd "$RELENTLESS_DIR" && npm install && npm run build) || {
+    echo "  [FAIL] lib/ TypeScript build failed"
+    exit 1
+}
+echo "  [ok] lib/ TypeScript build"
+
+(cd "$RELENTLESS_DIR/.opencode" && npm install && npm run build) || {
+    echo "  [FAIL] Plugin TypeScript build failed"
+    exit 1
+}
+echo "  [ok] Plugin TypeScript build"
+
 # Create target directories if needed
 mkdir -p "$OPENCODE_DIR/plugins"
 mkdir -p "$OPENCODE_DIR/agents"
@@ -14,9 +28,9 @@ mkdir -p "$OPENCODE_DIR/commands"
 mkdir -p "$OPENCODE_DIR/skills"
 
 # Plugin registration
-ln -sf "$RELENTLESS_DIR/.opencode/plugins/relentless.js" \
+ln -sf "$RELENTLESS_DIR/.opencode/dist/relentless.js" \
     "$OPENCODE_DIR/plugins/relentless.js"
-echo "  [ok] Plugin: relentless.js"
+echo "  [ok] Plugin: relentless.js (compiled)"
 
 # Agent registration
 for agent in conductor artisan maestro sentinel scout; do

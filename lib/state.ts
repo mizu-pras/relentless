@@ -5,17 +5,39 @@ const STATE_DIR = ".relentless";
 const PURSUIT_FILE = "current-pursuit.json";
 const HALT_FILE = "halt";
 
-/**
- * Get path to .relentless directory for the given project dir.
- */
-function stateDir(projectDir) {
+export interface PursuitTodo {
+  id: string;
+  subject: string;
+  status: string;
+  agent?: string;
+}
+
+export interface CircuitBreakerStatus {
+  consecutive_failures?: number;
+  injections_last_minute?: number;
+}
+
+export interface PursuitState {
+  task?: string;
+  todos?: PursuitTodo[];
+  current_loop?: number;
+  max_loops?: number;
+  circuit_breaker?: CircuitBreakerStatus;
+  config?: {
+    circuit_breaker?: {
+      max_consecutive_failures?: number;
+    };
+  };
+  halted?: boolean;
+  updated_at?: string;
+  version?: number;
+}
+
+function stateDir(projectDir?: string): string {
   return join(projectDir || ".", STATE_DIR);
 }
 
-/**
- * Ensure .relentless/ directory exists.
- */
-function ensureStateDir(projectDir) {
+function ensureStateDir(projectDir?: string): string {
   const dir = stateDir(projectDir);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
@@ -23,26 +45,20 @@ function ensureStateDir(projectDir) {
   return dir;
 }
 
-/**
- * Read current pursuit state. Returns null if not found.
- */
-export function readPursuitState(projectDir) {
+export function readPursuitState(projectDir?: string): PursuitState | null {
   const path = join(stateDir(projectDir), PURSUIT_FILE);
   if (!existsSync(path)) return null;
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return JSON.parse(readFileSync(path, "utf8")) as PursuitState;
   } catch {
     return null;
   }
 }
 
-/**
- * Write pursuit state snapshot.
- */
-export function writePursuitState(projectDir, state) {
+export function writePursuitState(projectDir: string | undefined, state: PursuitState): PursuitState {
   const dir = ensureStateDir(projectDir);
   const path = join(dir, PURSUIT_FILE);
-  const snapshot = {
+  const snapshot: PursuitState = {
     ...state,
     updated_at: new Date().toISOString(),
     version: 1,
@@ -51,17 +67,11 @@ export function writePursuitState(projectDir, state) {
   return snapshot;
 }
 
-/**
- * Check if halt flag is set.
- */
-export function isHalted(projectDir) {
+export function isHalted(projectDir?: string): boolean {
   return existsSync(join(stateDir(projectDir), HALT_FILE));
 }
 
-/**
- * Set halt flag.
- */
-export function setHalt(projectDir, reason = "user requested") {
+export function setHalt(projectDir: string | undefined, reason = "user requested"): void {
   const dir = ensureStateDir(projectDir);
   writeFileSync(
     join(dir, HALT_FILE),
@@ -70,20 +80,14 @@ export function setHalt(projectDir, reason = "user requested") {
   );
 }
 
-/**
- * Clear halt flag.
- */
-export function clearHalt(projectDir) {
+export function clearHalt(projectDir?: string): void {
   const path = join(stateDir(projectDir), HALT_FILE);
   if (existsSync(path)) {
     unlinkSync(path);
   }
 }
 
-/**
- * Format pursuit state for display in /status.
- */
-export function formatStatus(state) {
+export function formatStatus(state: PursuitState | null): string {
   if (!state) return "No active pursuit. Run /unleash to start one.";
 
   const todos = state.todos || [];
@@ -95,9 +99,7 @@ export function formatStatus(state) {
     .map((t) => `  ${t.agent || "unknown"}    → ${t.id} (in_progress): ${t.subject}`)
     .join("\n");
 
-  const pendingList = pending
-    .map((t) => `  ${t.id}: ${t.subject}`)
-    .join("\n");
+  const pendingList = pending.map((t) => `  ${t.id}: ${t.subject}`).join("\n");
 
   const cb = state.circuit_breaker || {};
 

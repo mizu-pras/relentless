@@ -2,5 +2,13 @@
   "name": "relentless",
   "version": "0.1.0",
   "type": "module",
-  "description": "Autonomous multi-agent orchestration for OpenCode"
+  "description": "Autonomous multi-agent orchestration for OpenCode",
+  "scripts": {
+    "build": "tsc -p lib/tsconfig.json",
+    "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/node": "^22.0.0"
+  }
 }

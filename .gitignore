@@ -1,0 +1,15 @@
+# Build output
+lib/dist/
+.opencode/dist/
+
+# Dependencies
+node_modules/
+.opencode/node_modules/
+
+# Lock files (installed from dependencies, not tracked)
+package-lock.json
+.opencode/package-lock.json
+.opencode/bun.lock
+
+# Runtime state
+.relentless/

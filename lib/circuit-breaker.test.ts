@@ -30,27 +30,23 @@ const cb = new CircuitBreaker({ max_consecutive_failures: 3 });
 const r1 = cb.recordFailure({ status: 503, message: "network" });
 assert.strictEqual(r1.open, false, "first failure should not open circuit");
 const r2 = cb.recordFailure({ status: 503, message: "network" });
-// Same error type twice in a row
 assert.strictEqual(r2.open, true, "same error twice should open circuit");
 console.log("PASS: Layer 2 same-error-twice opens circuit");
 
 const cb2 = new CircuitBreaker({ max_consecutive_failures: 3 });
 cb2.recordFailure({ status: 429, message: "rate limit" });
-cb2.recordSuccess(); // reset
+cb2.recordSuccess();
 cb2.recordFailure({ status: 503, message: "network" });
 cb2.recordFailure({ status: 503, message: "network" });
-// Same error type twice again
 const r3 = cb2.recordFailure({ status: 503, message: "network" });
 assert.strictEqual(r3.open, true, "3 consecutive failures should open circuit");
 console.log("PASS: Layer 2 max consecutive failures opens circuit");
 
-// Test Layer 2: token limit always opens immediately
 const cb3 = new CircuitBreaker();
 const r4 = cb3.recordFailure(new Error("prompt is too long — context_length_exceeded"));
 assert.strictEqual(r4.open, true, "token limit should open circuit immediately");
 console.log("PASS: Layer 2 token limit opens immediately");
 
-// Test Layer 3: injection rate limiter
 const cb4 = new CircuitBreaker({ max_injections_per_minute: 3 });
 assert.strictEqual(cb4.canInject(), true, "first injection allowed");
 assert.strictEqual(cb4.canInject(), true, "second injection allowed");
@@ -58,7 +54,6 @@ assert.strictEqual(cb4.canInject(), true, "third injection allowed");
 assert.strictEqual(cb4.canInject(), false, "fourth injection blocked");
 console.log("PASS: Layer 3 injection rate limiter");
 
-// Test Layer 4: token budget
 const cb5 = new CircuitBreaker({ token_budget_threshold: 0.85 });
 assert.strictEqual(cb5.checkTokenBudget(0.7), true, "70% usage should be allowed");
 assert.strictEqual(cb5.checkTokenBudget(0.9), false, "90% usage should be blocked");
