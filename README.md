@@ -11,7 +11,7 @@ Relentless breaks complex tasks into specialized work, dispatches them to purpos
 | Capability | Description |
 |-----------|-------------|
 | Autonomous deep work | `/unleash` plans, dispatches agents, and drives to completion |
-| Multi-model orchestration | 5 specialized agents, each on the optimal model |
+| Multi-model orchestration | 6 specialized agents, each on the optimal model |
 | Completion loop | `/pursuit` repeats until all criteria are met |
 | Codebase mapping | `/recon` generates and audits `AGENTS.md` files |
 | Session resilience | `/resume` picks up interrupted work from saved state |
@@ -20,7 +20,7 @@ Relentless breaks complex tasks into specialized work, dispatches them to purpos
 ## Quick Start
 
 ```bash
-# Install (creates symlinks, copies default config)
+# Install (builds TypeScript, creates symlinks, copies default config)
 bash ~/.config/opencode/relentless/install.sh
 
 # Restart OpenCode, then:
@@ -47,7 +47,7 @@ bash ~/.config/opencode/relentless/uninstall.sh
 
 ## Agents
 
-Five specialized agents, each assigned to the model best suited for its role:
+Six specialized agents, each assigned to the model best suited for its role:
 
 | Agent | Model | Role | Category |
 |-------|-------|------|----------|
@@ -55,7 +55,8 @@ Five specialized agents, each assigned to the model best suited for its role:
 | **Artisan** | GPT-5.3 Codex | Deep coder — features, tests, refactoring. Goal-oriented. | `deep` |
 | **Maestro** | GPT-5.3 Codex | UI/UX specialist — bold aesthetics, anti-generic design. | `visual` |
 | **Sentinel** | Claude Sonnet | Quality guardian — debugging, code review, architecture. | `reason` |
-| **Scout** | GLM-5 | Fast explorer — read-only reconnaissance and file search. | `quick` |
+| **Scout** | zai-coding-plan/GLM-5 | Fast explorer — read-only reconnaissance and file search. | `quick` |
+| **Code Reviewer** | Inherited | Senior reviewer — validates completed steps against plans and standards. | on-demand |
 
 **Authority hierarchy:** Conductor > Sentinel > Artisan/Maestro > Scout
 
@@ -63,20 +64,29 @@ Five specialized agents, each assigned to the model best suited for its role:
 
 ```
 ~/.config/opencode/relentless/
-├── agents/           # Agent definitions and model assignments
+├── .opencode/            # Plugin SDK integration
+│   ├── dist/             # Compiled plugin entry point
+│   ├── plugins/          # Plugin source
+│   ├── package.json      # Plugin dependencies (@opencode-ai/plugin@1.2.24)
+│   └── tsconfig.json
+├── agents/               # Agent definitions and model assignments
+│   ├── AGENTS.md
 │   ├── conductor.md
 │   ├── artisan.md
 │   ├── maestro.md
 │   ├── sentinel.md
-│   └── scout.md
-├── commands/         # Slash-command wrappers
+│   ├── scout.md
+│   └── code-reviewer.md
+├── commands/             # Slash-command wrappers
+│   ├── AGENTS.md
 │   ├── unleash.md
 │   ├── pursuit.md
 │   ├── recon.md
 │   ├── resume.md
 │   ├── status.md
 │   └── halt.md
-├── skills/           # Injected and on-demand relentless skills
+├── skills/               # Injected and on-demand relentless skills
+│   ├── AGENTS.md
 │   ├── intent-gate/                 # Analyze intent before acting
 │   ├── todo-enforcer/               # Stay on task, prevent scope creep
 │   ├── using-relentless/            # Session bootstrap behavior
@@ -94,13 +104,22 @@ Five specialized agents, each assigned to the model best suited for its role:
 │   ├── finishing-a-development-branch/ # Branch completion workflow
 │   ├── using-git-worktrees/         # Isolated feature workspace setup
 │   └── writing-skills/              # Skill authoring meta-workflow
-├── lib/              # Runtime logic
-│   ├── config.js     # JSONC config loading and merge
-│   ├── state.js      # .relentless/ state and halt management
-│   └── circuit-breaker.js  # 5-layer runaway protection
-├── defaults.jsonc    # Default configuration
-├── install.sh        # Install symlinks and config
-└── uninstall.sh      # Remove symlinks
+├── lib/                  # Runtime logic (TypeScript)
+│   ├── AGENTS.md
+│   ├── config.ts         # JSONC config loading and merge
+│   ├── config.test.ts    # Config tests
+│   ├── state.ts          # .relentless/ state and halt management
+│   ├── state.test.ts     # State tests
+│   ├── circuit-breaker.ts     # 5-layer runaway protection
+│   ├── circuit-breaker.test.ts # Circuit breaker tests
+│   ├── tsconfig.json
+│   └── dist/             # Compiled JavaScript output
+├── docs/                 # Specs and design notes
+│   ├── specs/
+│   └── plans/
+├── defaults.jsonc        # Default configuration
+├── install.sh            # Build + install symlinks and config
+└── uninstall.sh          # Remove symlinks
 ```
 
 ### Runtime State
@@ -174,6 +193,13 @@ Configuration uses JSONC (comments and trailing commas allowed).
     "max_iterations": 10,
     "require_progress": true,
     "stall_limit": 2
+  },
+
+  // Recon (codebase mapping) settings
+  "recon": {
+    "max_depth": 4,
+    "include_env_vars": true,
+    "include_dependencies": true
   }
 }
 ```
@@ -195,9 +221,11 @@ Workflow skills are forked from [superpowers](https://github.com/obra/superpower
 
 ## Stack
 
-- **Language:** JavaScript (ES modules)
+- **Language:** TypeScript (ES modules, `"type": "module"`)
 - **Runtime:** Node.js / Bun
-- **Plugin SDK:** `@opencode-ai/plugin`
+- **Plugin SDK:** `@opencode-ai/plugin@1.2.24`
+- **Build:** `tsc` (TypeScript compiler)
+- **Tests:** `npm test` (compiles and runs `*.test.ts` files)
 
 ## Design & Plans
 
