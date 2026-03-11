@@ -13,3 +13,6 @@ package-lock.json
 
 # Runtime state
 .relentless/
+
+# Git worktrees
+.worktrees/
