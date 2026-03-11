@@ -32,7 +32,8 @@ for cmd in unleash pursuit recon resume status halt; do
     echo "  [ok] Command: /$cmd"
 done
 
-# Skill registration (directory symlink)
+# Skill registration (directory symlink — remove first to prevent self-loop on re-run)
+rm -f "$OPENCODE_DIR/skills/relentless"
 ln -sf "$RELENTLESS_DIR/skills" \
     "$OPENCODE_DIR/skills/relentless"
 echo "  [ok] Skills: relentless/*"
