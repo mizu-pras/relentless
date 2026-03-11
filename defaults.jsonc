@@ -1,0 +1,35 @@
+{
+  // Relentless Configuration
+  // Copy to ~/.config/opencode/relentless.jsonc (done by install.sh)
+  // Project-level override: .opencode/relentless.jsonc
+
+  // Category-to-agent routing
+  "categories": {
+    "deep": "artisan",
+    "visual": "maestro",
+    "quick": "scout",
+    "reason": "sentinel",
+    "orchestrate": "conductor"
+  },
+
+  // Circuit breaker settings
+  "circuit_breaker": {
+    "max_consecutive_failures": 3,
+    "max_injections_per_minute": 3,
+    "token_budget_threshold": 0.85
+  },
+
+  // Pursuit (completion loop) settings
+  "pursuit": {
+    "max_iterations": 10,
+    "require_progress": true,
+    "stall_limit": 2
+  },
+
+  // Recon (codebase mapping) settings
+  "recon": {
+    "max_depth": 4,
+    "include_env_vars": true,
+    "include_dependencies": true
+  }
+}
