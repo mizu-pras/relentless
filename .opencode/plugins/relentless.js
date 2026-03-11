@@ -49,7 +49,7 @@ You have access to these specialized agents:
 - **artisan** (GPT-5.3 Codex): Deep coder. Complex implementation, backend, refactoring.
 - **maestro** (GPT-5.3 Codex): UI/UX specialist. Visual/aesthetic-primary tasks only.
 - **sentinel** (Claude Sonnet): Debugger and architect. Root cause tracing, code review.
-- **scout** (GLM-5): Fast explorer. Read-only codebase recon and file search.
+- **scout** (ollama-cloud/GLM-5): Fast explorer. Read-only codebase recon and file search.
 
 Authority: conductor > sentinel > artisan/maestro > scout
 Category routing: deep→artisan, visual→maestro, quick→scout, reason→sentinel, orchestrate→conductor

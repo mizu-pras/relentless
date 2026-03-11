@@ -36,7 +36,7 @@ Restart OpenCode. Then:
 | Artisan | GPT-5.3 Codex | Deep coder |
 | Maestro | GPT-5.3 Codex | UI/UX specialist |
 | Sentinel | Claude Sonnet | Debugger/reviewer |
-| Scout | GLM-5 | Fast explorer |
+| Scout | ollama-cloud/GLM-5 | Fast explorer |
 
 ## Configuration
 
