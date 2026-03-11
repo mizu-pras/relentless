@@ -1,6 +1,6 @@
 # Relentless
 
-Autonomous multi-agent orchestration plugin for [OpenCode](https://opencode.ai), built on top of [superpowers](https://github.com/superpowers).
+Autonomous multi-agent orchestration plugin for [OpenCode](https://opencode.ai), built on top of [superpowers](https://github.com/obra/superpowers).
 
 **Type `/unleash "build X"` and don't touch your keyboard until it's done.**
 
