@@ -6,9 +6,10 @@
 ## Agent Roster
 - `conductor`: orchestrator for planning, dispatch, and validation
 - `artisan`: deep implementation and refactoring
-- `maestro`: UI/UX and visual interaction work
+- `maestro`: UI/UX specialist for visual-primary tasks
 - `sentinel`: debugging, review, and quality assurance
 - `scout`: fast read-only reconnaissance
+- `code-reviewer`: review template for spec compliance and code quality
 
 ## Model Assignment
 - Agent model selection is declared in each agent markdown frontmatter.

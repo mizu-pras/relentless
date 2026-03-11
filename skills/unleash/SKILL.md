@@ -29,12 +29,12 @@ Apply `relentless:intent-gate` to the task:
 ## Phase 2: Planning (Conductor)
 
 Activate as Conductor. Then:
-1. Invoke `superpowers:brainstorming` if task complexity warrants it (architectural decisions, unclear scope)
-2. Invoke `superpowers:writing-plans` to create a structured implementation plan
+1. Invoke `relentless:brainstorming` if task complexity warrants it (architectural decisions, unclear scope)
+2. Invoke `relentless:writing-plans` to create a structured implementation plan
 3. Save the plan summary to `.relentless/current-pursuit.json`
 4. Create todos for each planned step (use TodoWrite)
 
-**Remember:** You (Conductor) are the proxy user for superpowers approval gates. Do not escalate brainstorming or plan approval to the human user.
+**Remember:** You (Conductor) are the proxy user for relentless skill approval gates. Do not escalate brainstorming or plan approval to the human user.
 
 ## Phase 3: Scout Reconnaissance
 
@@ -80,9 +80,9 @@ Apply `relentless:pursuit` to drive to completion.
 ## Phase 7: Final Validation
 
 When pursuit completes:
-1. Invoke `superpowers:verification-before-completion`
-2. Invoke `superpowers:requesting-code-review` (dispatches Sentinel)
-3. Invoke `superpowers:finishing-a-development-branch`
+1. Invoke `relentless:verification-before-completion`
+2. Invoke `relentless:requesting-code-review` (dispatches Sentinel)
+3. Invoke `relentless:finishing-a-development-branch`
 
 ## Phase 8: Report to User
 

@@ -10,7 +10,7 @@ rm -f "$OPENCODE_DIR/plugins/relentless.js"
 echo "  [ok] Removed: plugin"
 
 # Remove agents
-for agent in conductor artisan maestro sentinel scout; do
+for agent in conductor artisan maestro sentinel scout code-reviewer; do
     rm -f "$OPENCODE_DIR/agents/$agent.md"
     echo "  [ok] Removed: agent $agent"
 done

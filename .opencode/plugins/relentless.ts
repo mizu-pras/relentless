@@ -43,7 +43,9 @@ const sessionTokenUsage = new Map<string, number>();
 const RelentlessPlugin: Plugin = async ({ client, directory }) => {
   const intentGateContent = readSkill("intent-gate");
   const todoEnforcerContent = readSkill("todo-enforcer");
+  const usingRelentlessContent = readSkill("using-relentless");
 
+  // Agent catalog injected into the system prompt for routing/discovery context.
   const agentCatalog = `
 ## Relentless Agent Catalog
 
@@ -61,6 +63,7 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
   const systemInjection = [
     intentGateContent && `<RELENTLESS_INTENT_GATE>\n${intentGateContent}\n</RELENTLESS_INTENT_GATE>`,
     todoEnforcerContent && `<RELENTLESS_TODO_ENFORCER>\n${todoEnforcerContent}\n</RELENTLESS_TODO_ENFORCER>`,
+    usingRelentlessContent && `<RELENTLESS_BOOTSTRAP>\n## Using Relentless\n\n${usingRelentlessContent}\n</RELENTLESS_BOOTSTRAP>`,
     `<RELENTLESS_AGENTS>\n${agentCatalog}\n</RELENTLESS_AGENTS>`,
   ]
     .filter(Boolean)

@@ -1,6 +1,6 @@
 # Relentless
 
-Autonomous multi-agent orchestration plugin for [OpenCode](https://opencode.ai), built on top of [superpowers](https://github.com/obra/superpowers).
+Autonomous multi-agent orchestration plugin for [OpenCode](https://opencode.ai), now a fully self-contained orchestration system.
 
 **Type `/unleash "build X"` and don't touch your keyboard until it's done.**
 
@@ -76,13 +76,24 @@ Five specialized agents, each assigned to the model best suited for its role:
 │   ├── resume.md
 │   ├── status.md
 │   └── halt.md
-├── skills/           # Injected and on-demand skills
-│   ├── intent-gate/  # Analyze intent before acting
-│   ├── todo-enforcer/# Stay on task, prevent scope creep
-│   ├── pursuit/      # Completion loop logic
-│   ├── unleash/      # Full orchestration pipeline
-│   ├── recon/        # Codebase mapping workflows
-│   └── ui-craft/     # 5-phase UI/UX design process
+├── skills/           # Injected and on-demand relentless skills
+│   ├── intent-gate/                 # Analyze intent before acting
+│   ├── todo-enforcer/               # Stay on task, prevent scope creep
+│   ├── using-relentless/            # Session bootstrap behavior
+│   ├── pursuit/                     # Completion loop logic
+│   ├── unleash/                     # Full orchestration pipeline
+│   ├── recon/                       # Codebase mapping workflows
+│   ├── ui-craft/                    # 5-phase UI/UX design process
+│   ├── brainstorming/               # Design exploration before implementation
+│   ├── writing-plans/               # Structured implementation planning
+│   ├── test-driven-development/     # TDD workflow enforcement
+│   ├── systematic-debugging/        # Root-cause investigation workflow
+│   ├── verification-before-completion/ # Completion verification gates
+│   ├── requesting-code-review/      # Review dispatch workflow
+│   ├── receiving-code-review/       # Review feedback handling workflow
+│   ├── finishing-a-development-branch/ # Branch completion workflow
+│   ├── using-git-worktrees/         # Isolated feature workspace setup
+│   └── writing-skills/              # Skill authoring meta-workflow
 ├── lib/              # Runtime logic
 │   ├── config.js     # JSONC config loading and merge
 │   ├── state.js      # .relentless/ state and halt management
@@ -167,19 +178,20 @@ Configuration uses JSONC (comments and trailing commas allowed).
 }
 ```
 
-## Superpowers Integration
+## Skills
 
-Relentless augments superpowers — it never overrides it. Agents invoke superpowers skills explicitly:
+Relentless is self-contained and ships with both core orchestration skills and built-in workflow skills:
 
-| Agent | Superpowers Skills Used |
-|-------|------------------------|
-| Conductor | brainstorming, writing-plans, verification-before-completion, requesting-code-review |
-| Artisan | test-driven-development |
-| Sentinel | systematic-debugging, verification-before-completion |
-| Maestro | *(uses Relentless ui-craft skill instead)* |
-| Scout | *(tasks too lightweight for skills)* |
+| Category | Skills |
+|----------|--------|
+| Core orchestration | intent-gate, todo-enforcer, using-relentless, pursuit, unleash, recon, ui-craft |
+| Workflow | brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, requesting-code-review, receiving-code-review, finishing-a-development-branch, using-git-worktrees, writing-skills |
 
-During autonomous `/unleash` runs, Conductor acts as **proxy user** for superpowers approval checkpoints — no human intervention needed between task start and final report.
+During autonomous `/unleash` runs, Conductor acts as **proxy user** for skill approval checkpoints — no human intervention needed between task start and final report.
+
+## Attribution
+
+Workflow skills are forked from [superpowers](https://github.com/obra/superpowers) by Jesse Vincent, licensed under MIT.
 
 ## Stack
 

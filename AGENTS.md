@@ -5,20 +5,21 @@
 - Main entrypoint command is `/unleash "task"`.
 
 ## Stack
-- Language: JavaScript (ES modules, `"type": "module"`)
+- Language: TypeScript (ES modules, `"type": "module"`)
 - Runtime: Node.js / Bun
 - Plugin SDK: `@opencode-ai/plugin@1.2.24`
 
 ## Common Commands
 - Install plugin and links: `bash install.sh`
 - Uninstall links: `bash uninstall.sh`
-- There are no `package.json` scripts for build/test/dev.
+- Build TypeScript: `npm run build`
+- Run tests: `npm test`
 
 ## Important Directories
 - `agents/` agent definitions and model assignments
 - `commands/` slash-command wrappers (`/unleash`, `/recon`, etc.)
 - `skills/` injected and on-demand skills
-- `lib/` config/state/circuit-breaker runtime logic
+- `lib/` config/state/circuit-breaker runtime logic (TypeScript)
 - `docs/` specs and design notes
 
 ## Configuration
@@ -36,4 +37,4 @@
 - Uses JSONC parsing (comments and trailing commas tolerated)
 - Loads some modules lazily with dynamic imports for resilience
 - Session compaction hook preserves orchestration context
-- Circuit breaker in `lib/circuit-breaker.js` prevents runaway loops
+- Circuit breaker in `lib/circuit-breaker.ts` prevents runaway loops

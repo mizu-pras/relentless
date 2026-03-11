@@ -4,9 +4,14 @@
 - Shared utilities for config loading, state persistence, and circuit-breaker protection.
 
 ## Key Files
-- `config.js`: JSONC config loading and merge order
-- `state.js`: `.relentless/` state and halt management
-- `circuit-breaker.js`: runaway-loop protection
+- `config.ts`: JSONC config loading and merge order
+- `state.ts`: `.relentless/` state and halt management
+- `circuit-breaker.ts`: runaway-loop protection (5-layer)
+- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`)
+
+## Commands
+- `npm run build` — compile via `tsc -p lib/tsconfig.json`
+- `npm test` — build + run all test files
 
 ## Config Behavior
 - Merge order: defaults -> user -> project

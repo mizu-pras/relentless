@@ -1,8 +1,10 @@
 # Relentless Implementation Plan
 
-> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Migration Note (2026-03-11):** This plan was written when Relentless depended on superpowers as an external plugin. Superpowers workflow skills have since been forked and internalized into Relentless as built-in skills. All `superpowers:` namespace references in this document are historical — the live codebase uses `relentless:` exclusively.
 
-**Goal:** Build Relentless — an OpenCode plugin that adds autonomous multi-agent orchestration, relentless completion loops, and UI/UX specialist capabilities on top of superpowers.
+> **For agentic workers:** REQUIRED: Use the relentless pursuit loop for execution. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build Relentless — a fully self-contained OpenCode plugin that adds autonomous multi-agent orchestration, relentless completion loops, and UI/UX specialist capabilities with built-in workflow skills.
 
 **Architecture:** Relentless is a plugin for OpenCode that registers itself via a JavaScript entry point (`relentless.js`), defines 5 specialized agents as markdown files, provides 6 commands as markdown wrappers, and implements 6 skills as SKILL.md files. The plugin's JS layer handles system prompt injection, session state persistence, and circuit breaker logic. All orchestration logic lives in the custom tools exposed by the plugin.
 

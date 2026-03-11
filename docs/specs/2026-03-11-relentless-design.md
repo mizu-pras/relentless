@@ -4,6 +4,8 @@
 **Status:** Design Approved — Ready for Implementation  
 **Author:** Design session with user
 
+> **Migration Note (2026-03-11):** This design document was written when Relentless depended on superpowers as an external plugin. Superpowers workflow skills have since been forked and internalized into Relentless as built-in skills. All `superpowers:` namespace references in this document are historical — the live codebase uses `relentless:` exclusively.
+
 > **Note on model IDs:** Model identifiers like `openai/gpt-5.3-codex` and `zai/glm-5` reflect what is currently configured in the user's `opencode.json`. These are user-specific — the plugin reads actual model IDs from `relentless/agents/*.md` frontmatter at runtime, not from hardcoded values. See Section 10.
 
 ---

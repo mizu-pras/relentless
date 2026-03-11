@@ -33,7 +33,7 @@ ln -sf "$RELENTLESS_DIR/.opencode/dist/relentless.js" \
 echo "  [ok] Plugin: relentless.js (compiled)"
 
 # Agent registration
-for agent in conductor artisan maestro sentinel scout; do
+for agent in conductor artisan maestro sentinel scout code-reviewer; do
     ln -sf "$RELENTLESS_DIR/agents/$agent.md" \
         "$OPENCODE_DIR/agents/$agent.md"
     echo "  [ok] Agent: $agent"
@@ -47,6 +47,7 @@ for cmd in unleash pursuit recon resume status halt; do
 done
 
 # Skill registration (directory symlink — remove first to prevent self-loop on re-run)
+# Note: this includes forked superpowers workflow skills under skills/.
 rm -f "$OPENCODE_DIR/skills/relentless"
 ln -sf "$RELENTLESS_DIR/skills" \
     "$OPENCODE_DIR/skills/relentless"
