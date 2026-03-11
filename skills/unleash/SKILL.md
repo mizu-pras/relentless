@@ -15,7 +15,7 @@ Before anything else:
    - `anthropic/claude-opus-4-6` (Conductor)
    - `openai/gpt-5.3-codex` (Artisan, Maestro)
    - `anthropic/claude-sonnet-4-6` (Sentinel)
-   - `zai/glm-5` (Scout)
+   - `zai-coding-plan/glm-5` (Scout)
    - If any missing: warn user and ask whether to continue with available models or abort
 
 ## Phase 1: Intent Analysis
@@ -53,8 +53,7 @@ Before any parallel dispatch, pre-assign which files each agent may touch:
 
 ## Phase 5: Parallel Dispatch
 
-**RESOLVE OPEN QUESTION #1 BEFORE IMPLEMENTING THIS PHASE.**
-(Verify whether OpenCode supports truly parallel subagent dispatch. If sequential only, dispatch in priority order and report progress between each.)
+OpenCode dispatches multiple Task tool calls in a single message **in parallel** (via `Promise.all`). To dispatch concurrently, include all Task tool calls in a single assistant response.
 
 Dispatch agents by category:
 - `deep` tasks → artisan (include handoff schema)

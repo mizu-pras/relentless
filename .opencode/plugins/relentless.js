@@ -34,6 +34,9 @@ function readSkill(skillName) {
 // Per-session circuit breaker instances (keyed by sessionID)
 const circuitBreakers = new Map();
 
+// Per-session cumulative input token tracking (keyed by sessionID)
+const sessionTokenUsage = new Map();
+
 /**
  * Relentless Plugin for OpenCode
  */
@@ -101,11 +104,32 @@ IMPORTANT: Continue the pursuit from the state above. Do not restart from the be
       }
     },
 
-    // Track session events for circuit breaker
+    // Track session events for circuit breaker + token budget (Layer 4)
     event: async (event) => {
       try {
         const sessionID = event?.sessionID;
         if (!sessionID) return;
+
+        // Layer 4: Track token usage from message updates
+        if (event.type === "message.updated") {
+          const msg = event?.properties?.info;
+          if (msg?.role === "assistant" && msg?.tokens?.input) {
+            const cumulative = (sessionTokenUsage.get(sessionID) || 0) + msg.tokens.input;
+            sessionTokenUsage.set(sessionID, cumulative);
+
+            // Check token budget if we have a circuit breaker for this session
+            const cb = circuitBreakers.get(sessionID);
+            if (cb) {
+              // Get model context limit (default 128k if unknown)
+              const contextLimit = msg?.model?.limit?.context || 128000;
+              const usage = cumulative / contextLimit;
+              if (!cb.checkTokenBudget(usage)) {
+                cb.markStalled();
+                // State will be persisted on next idle event
+              }
+            }
+          }
+        }
 
         if (event.type === "session.error") {
           const CircuitBreaker = await getCircuitBreaker();
@@ -125,7 +149,10 @@ IMPORTANT: Continue the pursuit from the state above. Do not restart from the be
             if (state) {
               const cb = circuitBreakers.get(sessionID);
               if (cb) {
-                state.circuit_breaker = cb.getStatus();
+                state.circuit_breaker = {
+                  ...cb.getStatus(),
+                  token_usage: sessionTokenUsage.get(sessionID) || 0,
+                };
                 writePursuitState(directory, state);
               }
             }
