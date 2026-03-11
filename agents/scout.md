@@ -1,6 +1,6 @@
 ---
 name: scout
-model: ollama-cloud/glm-5
+model: zai-coding-plan/glm-5
 description: |
   Fast codebase explorer. Use when Conductor needs quick reconnaissance:
   find files, detect patterns, understand project structure. Read-only.
