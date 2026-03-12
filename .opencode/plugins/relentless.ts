@@ -60,15 +60,33 @@ function readSkill(skillName: string, variant = "SKILL"): string {
   return readFileSync(resolved, "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
 }
 
+function readAgentModel(agentName: string): string {
+  const resolved = join(PLUGIN_ROOT, `agents/${agentName}.md`);
+  if (!resolved.startsWith(PLUGIN_ROOT)) return ""; // path traversal guard
+  if (!existsSync(resolved)) return "";
+
+  const content = readFileSync(resolved, "utf8");
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!frontmatter) return "";
+
+  const modelLine = frontmatter[1].match(/^model:\s*(.+)$/m);
+  return modelLine?.[1]?.trim() ?? "";
+}
+
 const circuitBreakers = new Map<string, any>();
 const sessionTokenUsage = new Map<string, number>();
 const sessionContextLimits = new Map<string, number>();
 
 const RelentlessPlugin: Plugin = async ({ client, directory }) => {
+  const configuredConductorModel = readAgentModel("conductor");
+  const conductorModel = configuredConductorModel || "anthropic/claude-opus-4-6";
   const intentGateContent = readSkill("intent-gate");
   const todoEnforcerContent = readSkill("todo-enforcer");
   const usingRelentlessContent = readSkill("using-relentless");
   const usingRelentlessExtended = readSkill("using-relentless", "SKILL-EXTENDED");
+  if (!configuredConductorModel) {
+    console.warn("[relentless] Missing conductor model in agents/conductor.md frontmatter; using fallback model");
+  }
   if (!intentGateContent) {
     console.warn("[relentless] Missing required skill content: intent-gate");
   }
@@ -98,6 +116,12 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
 `.trim();
 
   return {
+    config: async (input) => {
+      input.agent ??= {};
+      input.agent.general ??= {};
+      input.agent.general.model = conductorModel;
+    },
+
     "experimental.chat.system.transform": async (_input, output) => {
       const parts: string[] = [];
 
