@@ -66,7 +66,7 @@ async function getCompaction(): Promise<{
 
 function readSkill(skillName: string, variant = "SKILL"): string {
   const resolved = join(PLUGIN_ROOT, `skills/${skillName}/${variant}.md`);
-  if (!resolved.startsWith(PLUGIN_ROOT)) return ""; // path traversal guard
+  if (!resolved.startsWith(PLUGIN_ROOT + "/")) return ""; // path traversal guard
   if (!existsSync(resolved)) return "";
   return readFileSync(resolved, "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
 }
@@ -81,7 +81,7 @@ const COMMAND_PATTERN = new RegExp(
 
 function readCommandFile(command: string, args: string): string | null {
   const resolved = join(PLUGIN_ROOT, `commands/${command}.md`);
-  if (!resolved.startsWith(PLUGIN_ROOT)) return null; // path traversal guard
+  if (!resolved.startsWith(PLUGIN_ROOT + "/")) return null; // path traversal guard
   if (!existsSync(resolved)) return null;
 
   let content = readFileSync(resolved, "utf8");
@@ -94,7 +94,7 @@ function readCommandFile(command: string, args: string): string | null {
 
 function readAgentModel(agentName: string): string {
   const resolved = join(PLUGIN_ROOT, `agents/${agentName}.md`);
-  if (!resolved.startsWith(PLUGIN_ROOT)) return ""; // path traversal guard
+  if (!resolved.startsWith(PLUGIN_ROOT + "/")) return ""; // path traversal guard
   if (!existsSync(resolved)) return "";
 
   const content = readFileSync(resolved, "utf8");

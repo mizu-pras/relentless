@@ -11,6 +11,9 @@
 - `/status`: inspect current orchestration state
 - `/halt`: stop active orchestration and set halt flag
 - `/history`: browse archived pursuit history (supports `--list`, `--detail <id>`, `--stats`)
+- `/metrics`: display pursuit analytics and performance metrics (supports `--detailed`, `--json`)
+- `/recover`: recover from failed or stuck pursuits (supports `--report`, `--soft`, `--hard`)
+- `/health`: run diagnostic health checks on installation (supports `--fix`)
 
 ## Behavioral Notes
 - Command files are thin wrappers; heavy logic lives in plugin runtime/skills.

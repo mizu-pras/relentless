@@ -12,7 +12,8 @@
 - `circuit-breaker.ts`: runaway-loop protection (5-layer)
 - `compaction.ts`: differential compaction — tracks state changes between compactions and only injects deltas
 - `lessons.ts`: persistent agent learning system — extracts, categorizes, and stores lessons from resolved errors across pursuits
-- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `lessons.test.ts`)
+- `metrics.ts`: pursuit analytics — computes metrics from archived pursuits and lessons (pursuit completion, agent performance, error patterns)
+- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`)
 
 ## Commands
 - `npm run build` — compile via `tsc -p lib/tsconfig.json`
@@ -90,3 +91,15 @@
 - Prefer lazy or dynamic imports where resilience is needed
 - Keep config/state helpers side-effect-light and deterministic
 - Treat `.relentless/halt` as a hard stop signal before actions
+
+## Metrics (Pursuit Analytics)
+- Computes analytics from `.relentless/history/` archives and `.relentless/lessons.jsonl`
+- Metrics: pursuit completion rates, agent dispatch/success rates, error category patterns
+- Three interfaces: `PursuitMetrics`, `AgentMetrics`, `ErrorMetrics` composed into `FullMetrics`
+- Two formatters: `formatMetricsSummary()` (compact table), `formatMetricsDetailed()` (expanded sections)
+- Handles gracefully: no history, corrupted archives, missing lessons, todos without agent fields
+
+## Plugin Integration Tests
+- `.opencode/plugins/relentless.test.ts` — tests all plugin hooks with real state/lessons/compaction
+- Run via `npm run test:plugin` (separate from lib tests due to different tsconfig)
+- Tests: config hook, chat.message rewrite, system transform injection, compaction fallback, event tracking, path traversal guards

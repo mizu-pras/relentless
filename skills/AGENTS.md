@@ -13,6 +13,9 @@
 - **chunk-gate/** — Intermediate build+test verification between implementation chunks. On-demand, enforced by pursuit loop.
 - **history/** — Pursuit archive browser. On-demand via `/history`.
 - **preflight/** — Pre-pursuit dependency and environment verification. On-demand, invoked by unleash Phase 3.
+- **metrics/** — Pursuit analytics and performance metrics. On-demand via `/metrics`.
+- **recovery/** — Structured recovery from failed or stuck pursuits. On-demand via `/recover`.
+- **health/** — Diagnostic health checks for Relentless installation. On-demand via `/health`.
 
 ### Workflow Skills (forked from superpowers, MIT License)
 - **brainstorming/** — Collaborative design exploration before implementation.
