@@ -13,9 +13,11 @@ Relentless breaks complex tasks into specialized work, dispatches them to purpos
 | Autonomous deep work | `/unleash` plans, dispatches agents, and drives to completion |
 | Multi-model orchestration | 6 specialized agents, each on the optimal model |
 | Completion loop | `/pursuit` repeats until all criteria are met |
+| Chunk verification | Intermediate build+test gates between implementation chunks |
 | Codebase mapping | `/recon` generates and audits `AGENTS.md` files |
 | Session resilience | `/resume` picks up interrupted work from saved state |
 | Runaway protection | 5-layer circuit breaker prevents infinite loops |
+| Framework gotcha learning | Persistent lessons system recognizes recurring build/framework patterns |
 
 ## Quick Start
 
@@ -93,6 +95,7 @@ Six specialized agents, each assigned to the model best suited for its role:
 │   ├── pursuit/                     # Completion loop logic
 │   ├── unleash/                     # Full orchestration pipeline
 │   ├── recon/                       # Codebase mapping workflows
+│   ├── chunk-gate/                  # Intermediate build+test verification
 │   ├── ui-craft/                    # 5-phase UI/UX design process
 │   ├── brainstorming/               # Design exploration before implementation
 │   ├── writing-plans/               # Structured implementation planning
@@ -107,11 +110,14 @@ Six specialized agents, each assigned to the model best suited for its role:
 ├── lib/                  # Runtime logic (TypeScript)
 │   ├── AGENTS.md
 │   ├── config.ts         # JSONC config loading and merge
-│   ├── config.test.ts    # Config tests
 │   ├── state.ts          # .relentless/ state and halt management
-│   ├── state.test.ts     # State tests
 │   ├── circuit-breaker.ts     # 5-layer runaway protection
-│   ├── circuit-breaker.test.ts # Circuit breaker tests
+│   ├── shared-context.ts      # Cross-agent context sharing + compression metrics
+│   ├── token-budget.ts        # Proactive token budget forecasting
+│   ├── compaction.ts          # Differential compaction for long pursuits
+│   ├── doc-tracker.ts         # Documentation dirty-tracking
+│   ├── lessons.ts             # Persistent learning system + framework gotcha database
+│   ├── *.test.ts              # Unit tests for each module
 │   ├── tsconfig.json
 │   └── dist/             # Compiled JavaScript output
 ├── docs/                 # Specs and design notes
@@ -128,18 +134,28 @@ During orchestration, state lives in `.relentless/` (project-local):
 
 - `current-pursuit.json` — Active plan, progress, agent assignments
 - `halt` — Created by `/halt`, checked by all agents before every action
+- `agent-assignments.json` — File ownership tracking per agent
+- `lessons.jsonl` — Persistent lessons across pursuits (survives archive)
+- `shared-context/` — Cross-agent knowledge base (cleared on archive):
+  - `project-map.md` — Codebase structure from Scout
+  - `conventions.md` — Detected coding patterns
+  - `decisions.jsonl` — Architectural decisions log
+  - `error-log.jsonl` — Errors and resolutions
+  - `file-summaries.jsonl` — Per-file summaries for handoff compression
+  - `doc-dirty.jsonl` — Documentation dirty-tracking
 
 ## How `/unleash` Works
 
 ```
-1. IntentGate        → Classify intent, detect ambiguity
-2. Conductor plans   → Brainstorm if complex, create structured plan
-3. Scout recon       → Understand codebase structure and patterns
-4. File ownership    → Pre-assign files per agent (no conflicts)
-5. Parallel dispatch → Artisan, Maestro, Sentinel work concurrently
-6. Pursuit loop      → Repeat until 100% (max 10 iterations)
-7. Final validation  → Tests pass, build green, Sentinel sign-off
-8. Report            → Summary of what was built
+ 1. IntentGate           → Classify intent, detect ambiguity
+ 2. Conductor plans      → Brainstorm if complex, create structured plan
+ 3. Scout recon          → Understand codebase, verify deps, check imports, scan gotchas
+ 4. File ownership       → Pre-assign files per agent (no conflicts)
+ 4b. Parallel analysis   → Analyze dependency graph, identify parallel tracks
+ 5. Parallel dispatch    → Artisan, Maestro, Sentinel work concurrently
+ 6. Pursuit loop         → Repeat until 100%, chunk-gate between phases
+ 7. Final validation     → Tests pass, build green, Sentinel sign-off (MANDATORY)
+ 8. Report               → Summary of what was built
 ```
 
 **Trivial tasks** (single file, < 20 lines) skip full orchestration and are handled directly.
@@ -200,6 +216,26 @@ Configuration uses JSONC (comments and trailing commas allowed).
     "max_depth": 4,
     "include_env_vars": true,
     "include_dependencies": true
+  },
+
+  // Chunk gate verification commands
+  "chunk_gate": {
+    "enabled": true,
+    "gate_commands": ["tsc --noEmit", "npm run build", "npm test"]
+  },
+
+  // Time budget allocation targets
+  "time_budget": {
+    "target_feature_ratio": 0.60,
+    "max_fix_ratio": 0.20,
+    "consecutive_fix_alert": 3
+  },
+
+  // Agent learning system
+  "lessons": {
+    "enabled": true,
+    "max_lessons_in_context": 10,
+    "max_lessons_in_handoff": 5
   }
 }
 ```
@@ -210,7 +246,7 @@ Relentless is self-contained and ships with both core orchestration skills and b
 
 | Category | Skills |
 |----------|--------|
-| Core orchestration | intent-gate, todo-enforcer, using-relentless, pursuit, unleash, recon, ui-craft |
+| Core orchestration | intent-gate, todo-enforcer, using-relentless, pursuit, unleash, recon, chunk-gate, ui-craft |
 | Workflow | brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, requesting-code-review, receiving-code-review, finishing-a-development-branch, using-git-worktrees, writing-skills |
 
 During autonomous `/unleash` runs, Conductor acts as **proxy user** for skill approval checkpoints — no human intervention needed between task start and final report.

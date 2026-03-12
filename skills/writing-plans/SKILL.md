@@ -43,6 +43,62 @@ This structure informs the task decomposition. Each task should produce self-con
 - "Run the tests and make sure they pass" - step
 - "Commit" - step
 
+## Plan Content Rules
+
+### No Full Implementation Code in Plans
+
+Plans should contain **architecture, interfaces, and acceptance criteria** — not implementation code.
+
+| Allowed in Plans | NOT Allowed in Plans |
+|-----------------|---------------------|
+| Interface signatures | Full function implementations |
+| Type definitions | Copy-paste-ready code blocks |
+| Pseudocode with comments | Exact file contents to create |
+| API endpoint shapes | Component render logic |
+| Database schema | Business logic implementations |
+| Test assertions (what to verify) | Test implementations (how to verify) |
+
+**Code snippets ARE allowed** when:
+- Labeled explicitly as "reference" or "example"
+- Showing a pattern, not an exact implementation
+- Demonstrating an API or library usage pattern
+- Maximum 10-15 lines per snippet
+
+**Why:** When plans contain exact code, agents copy without considering runtime context. This caused:
+- Route group confusion (plan said `(dashboard)` but didn't note it doesn't create URL segments)
+- Missing dependency detection (plan assumed packages were installed)
+- Framework misapplication (plan code didn't match actual framework behavior)
+
+### Acceptance Criteria Per Chunk
+
+Every chunk MUST end with an acceptance gate:
+
+```markdown
+### Chunk N Acceptance Gate
+- [ ] `tsc --noEmit` passes
+- [ ] `npm run build` passes  
+- [ ] `npm test` passes
+- [ ] [chunk-specific criteria]
+```
+
+Chunks without acceptance gates are incomplete plans.
+
+### Framework Gotchas Section
+
+Plans involving established frameworks MUST include a gotchas section:
+
+```markdown
+## Known Framework Gotchas
+
+| Framework | Gotcha | Impact |
+|-----------|--------|--------|
+| Next.js App Router | Route groups `(name)` don't create URL segments | URLs won't match component paths |
+| Prisma | `npx prisma generate` needed after schema change | Types won't match |
+| tRPC | Client types must be regenerated after router changes | Type errors |
+```
+
+Populate this by consulting framework documentation or lessons from `.relentless/lessons.jsonl`.
+
 ## Plan Document Header
 
 **Every plan MUST start with this header:**
@@ -104,9 +160,12 @@ git commit -m "feat: add specific feature"
 ```
 ````
 
+**Important:** Code in task steps should be pseudocode or interface-level, not full implementations. Use the `relentless:chunk-gate` skill to verify each chunk after implementation.
+
 ## Remember
 - Exact file paths always
-- Complete code in plan (not "add validation")
+- Architecture and interfaces in plan, not full implementation code (see Plan Content Rules)
+- Reference code snippets labeled as "reference", max 10-15 lines each
 - Exact commands with expected output
 - Reference relevant skills with @ syntax
 - Include file ownership assignments for parallel dispatch

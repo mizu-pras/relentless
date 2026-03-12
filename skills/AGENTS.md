@@ -10,6 +10,7 @@
 - **recon/** — Codebase mapping and AGENTS.md generation. On-demand via `/recon`.
 - **ui-craft/** — 5-phase UI/UX design process. Auto-loaded by Maestro.
 - **using-relentless/** — Bootstrap skill. Injected into every session.
+- **chunk-gate/** — Intermediate build+test verification between implementation chunks. On-demand, enforced by pursuit loop.
 
 ### Workflow Skills (forked from superpowers, MIT License)
 - **brainstorming/** — Collaborative design exploration before implementation.
@@ -26,6 +27,7 @@
 ## Runtime Behavior
 - `intent-gate` and `todo-enforcer` are injected into every system prompt via the plugin.
 - `using-relentless` is injected as bootstrap skill.
+- `chunk-gate` is invoked automatically during pursuit loop after each chunk. Can also be invoked manually.
 - Other skills are loaded on-demand via the Skill tool.
 - Agents auto-load specific skills: Maestro loads `ui-craft`, Sentinel loads `systematic-debugging`.
 

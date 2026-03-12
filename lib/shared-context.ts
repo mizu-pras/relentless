@@ -10,6 +10,15 @@ const DECISIONS_FILE = "decisions.jsonl";
 const ERROR_LOG_FILE = "error-log.jsonl";
 const FILE_SUMMARIES_FILE = "file-summaries.jsonl";
 
+let compressionMetrics: CompressionMetrics = {
+  total_summaries: 0,
+  total_summary_chars: 0,
+  handoff_requests: 0,
+  summary_hits: 0,
+  summary_misses: 0,
+  estimated_tokens_saved: 0,
+};
+
 export interface Decision {
   decision: string;
   reason: string;
@@ -30,6 +39,15 @@ export interface FileSummary {
   summary: string;
   agent: string;
   timestamp: string;
+}
+
+export interface CompressionMetrics {
+  total_summaries: number;
+  total_summary_chars: number;
+  handoff_requests: number;
+  summary_hits: number;
+  summary_misses: number;
+  estimated_tokens_saved: number;
 }
 
 export type MarkdownChannel = "project-map" | "conventions";
@@ -128,6 +146,8 @@ export function writeSummary(projectDir: string | undefined, entry: FileSummary)
   entries = entries.filter((existing) => existing.file !== entry.file);
   entries.push(entry);
   writeFileSync(path, entries.map((existing) => JSON.stringify(existing)).join("\n") + "\n", "utf8");
+  compressionMetrics.total_summaries = entries.length;
+  compressionMetrics.total_summary_chars = entries.reduce((sum, e) => sum + e.summary.length, 0);
 }
 
 export function readSummary(projectDir: string | undefined, filePath: string): FileSummary | null {
@@ -152,7 +172,32 @@ export function formatSummariesForHandoff(projectDir: string | undefined, filePa
       : `- \`${safePath}\`: (no summary available — agent should read this file)`;
   });
 
+  compressionMetrics.handoff_requests++;
+  for (const fp of filePaths) {
+    if (summaryMap.has(fp)) {
+      compressionMetrics.summary_hits++;
+      compressionMetrics.estimated_tokens_saved += 500; // avg tokens per file read avoided
+    } else {
+      compressionMetrics.summary_misses++;
+    }
+  }
+
   return `## Context Summaries\n\n${lines.join("\n")}`;
+}
+
+export function getCompressionMetrics(): CompressionMetrics {
+  return { ...compressionMetrics };
+}
+
+export function resetCompressionMetrics(): void {
+  compressionMetrics = {
+    total_summaries: 0,
+    total_summary_chars: 0,
+    handoff_requests: 0,
+    summary_hits: 0,
+    summary_misses: 0,
+    estimated_tokens_saved: 0,
+  };
 }
 
 const MAX_MARKDOWN_CHARS = 4000;

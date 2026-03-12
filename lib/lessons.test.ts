@@ -8,6 +8,7 @@ import {
   extractLessons,
   formatLessonsForContext,
   formatLessonsForHandoff,
+  getGotchasForStack,
   Lesson,
   LessonCategory,
 } from "./lessons.js";
@@ -76,7 +77,7 @@ assert.strictEqual(existsSync(join(ioDir, ".relentless", "lessons.jsonl")), fals
 console.log("PASS: clearLessons removes persisted lessons file");
 
 assert.strictEqual(categorizeError("Type 'string' is not assignable to type 'number'"), "type_error", "assignability errors should be type_error");
-assert.strictEqual(categorizeError("Cannot find module './foo'"), "import_error", "missing module errors should be import_error");
+assert.strictEqual(categorizeError("Cannot find module './foo'"), "framework_gotcha", "missing module errors should be framework_gotcha");
 assert.strictEqual(categorizeError("tsconfig.json parse error"), "config_error", "config parsing errors should be config_error");
 assert.strictEqual(categorizeError("test assertion failed"), "test_failure", "test assertions should be test_failure");
 assert.strictEqual(categorizeError("Build failed: tsc exit code 2"), "build_error", "build failures should be build_error");
@@ -252,6 +253,28 @@ assert.strictEqual(handoffGeneral.includes("[other] C"), true, "handoff fallback
 assert.strictEqual(handoffGeneral.includes("[other] D"), true, "handoff fallback should include third lesson");
 assert.strictEqual(handoffGeneral.includes("[other] A"), false, "handoff fallback should limit to top 3 lessons");
 console.log("PASS: formatLessonsForHandoff falls back to top 3 general lessons");
+
+const gotchaDir = join(TEST_DIR, "gotcha");
+writeLessons(gotchaDir, [
+  {
+    id: "L-g0000001",
+    category: "framework_gotcha",
+    pattern: "Next.js route segment must include layout",
+    resolution: "Add a layout.tsx for this route segment",
+    frequency: 2,
+    agents: ["artisan"],
+    examples: ["Module not found in next package"],
+    first_seen: "2026-03-12T04:00:00.000Z",
+    last_seen: "2026-03-12T04:10:00.000Z",
+    source_files: ["app/(marketing)/page.tsx"],
+  },
+]);
+const gotchaMatches = getGotchasForStack(gotchaDir, ["next", "typescript"]);
+assert.strictEqual(gotchaMatches.length, 1, "should find framework gotcha when stack matches pattern or examples");
+assert.strictEqual(gotchaMatches[0].category, "framework_gotcha", "returned lesson should be framework_gotcha");
+const gotchaMisses = getGotchasForStack(gotchaDir, ["svelte", "vue"]);
+assert.deepStrictEqual(gotchaMisses, [], "should return empty array when stack does not match gotcha");
+console.log("PASS: getGotchasForStack filters framework gotchas by stack");
 
 rmSync(TEST_DIR, { recursive: true });
 console.log("All lessons tests passed.");

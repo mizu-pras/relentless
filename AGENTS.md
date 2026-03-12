@@ -16,7 +16,7 @@
 - `agents/` agent definitions and model assignments
 - `commands/` slash-command wrappers (`/unleash`, `/recon`, etc.)
 - `skills/` injected and on-demand skills
-- `lib/` runtime modules (config, state, circuit-breaker, shared-context, token-budget, compaction, doc-tracker)
+- `lib/` runtime modules (config, state, circuit-breaker, shared-context, token-budget, compaction, doc-tracker, lessons)
 - `.opencode/` plugin build directory — `plugins/relentless.ts` is the main entrypoint
 
 ## Configuration

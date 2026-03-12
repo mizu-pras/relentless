@@ -6,7 +6,7 @@
 ## Key Files
 - `config.ts`: JSONC config loading and merge order
 - `state.ts`: `.relentless/` state, halt management, and agent assignments
-- `shared-context.ts`: shared knowledge base for cross-agent context (project-map, conventions, decisions, errors, file-summaries)
+- `shared-context.ts`: shared knowledge base for cross-agent context (project-map, conventions, decisions, errors, file-summaries, compression metrics)
 - `doc-tracker.ts`: documentation dirty-tracking — marks docs as needing update when source files change, tracks dirty/resolved status
 - `token-budget.ts`: proactive token budget forecasting — cost estimation, dispatch forecasting, compaction recommendations
 - `circuit-breaker.ts`: runaway-loop protection (5-layer)
@@ -25,6 +25,16 @@
   - `~/.config/opencode/relentless.jsonc`
   - `.opencode/relentless.jsonc`
 - JSONC comments and trailing commas are accepted.
+
+## Chunk Gate
+- Configurable via `chunk_gate` key in config
+- Default commands: `tsc --noEmit`, `npm run build`, `npm test`
+- Enforced by pursuit loop after each chunk completion
+
+## Time Budget
+- Configurable via `time_budget` key in config
+- Tracks feature vs fix ratio during pursuit
+- Alerts when fix ratio exceeds threshold (default: 20%)
 
 ## Token Budget
 - Proactive forecasting: estimate dispatch costs BEFORE sending agents
@@ -46,6 +56,7 @@
 - Auto-cleared when pursuit is archived via `archiveCompleted()`
 - Included in session compaction via `formatSharedContext()`
 - File summaries formatted for handoffs via `formatSummariesForHandoff()`
+- Compression metrics tracked: hits/misses/tokens-saved via `getCompressionMetrics()`
 
 ## Documentation Dirty Tracking
 - Tracks which documentation files need updating after code changes
@@ -67,6 +78,8 @@
 - When a pursuit is archived, `archiveCompleted()` extracts lessons from `error-log.jsonl` before clearing
 - Only errors with resolutions become lessons; unresolved errors are ignored
 - Lessons are categorized: `type_error`, `import_error`, `config_error`, `test_failure`, `build_error`, `runtime_error`, `pattern`, `convention`, `other`
+- Framework gotchas: `framework_gotcha` category for recurring build/framework issues
+- `getGotchasForStack()` queries lessons relevant to a project's tech stack
 - Error patterns are normalized (file paths, line numbers, quoted values stripped) for deduplication
 - Duplicate patterns merge: frequency increments, agents/examples accumulate, longer resolution wins
 - Lessons injected into: system prompt (via plugin), `formatSharedContext()`, and agent handoffs

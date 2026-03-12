@@ -30,6 +30,13 @@ ALL of the following must be true before a pursuit is complete:
 3. Build succeeds — if a build step exists, verify exit code 0
 4. Sentinel review: no Critical findings outstanding (final review always runs regardless of cadence)
 
+**Sentinel review is NON-NEGOTIABLE.** The performance report found that skipping Sentinel review led to:
+- Missing membership validation (potential data leak)
+- Duplicated utility functions (DRY violation)
+- No rate limiting on auth endpoints (security gap)
+
+Even if all tests pass and build succeeds, the pursuit is NOT complete without Sentinel sign-off.
+
 If any criterion fails, the loop continues.
 
 ## Loop Protocol
@@ -77,6 +84,26 @@ A stall occurs when 0 todos were completed in a loop. After `stall_limit` (defau
 3+ consecutive errors without output triggers the circuit breaker (Layer 5). This fires independently — either stall condition can stop the pursuit.
 
 When both fire simultaneously, this skill's message takes precedence (it has more task context).
+
+## Time Budget Awareness
+
+Track the ratio of feature work vs fix work during the pursuit:
+
+| Metric | Target | Alert Threshold |
+|--------|--------|----------------|
+| Feature commit ratio | > 60% | Below 60% |
+| Fix commit ratio | < 20% | Above 20% |
+| Consecutive fix commits | 0 | 3+ consecutive |
+
+**When fix ratio exceeds threshold:**
+1. Stop current work
+2. Run `relentless:systematic-debugging` to find root cause pattern
+3. Check if a chunk-gate was skipped (common cause of cascading fixes)
+4. Address systemic issue before continuing with more fixes
+
+**When 3+ consecutive fix commits:**
+- Likely symptom: fixing symptoms, not root cause
+- Action: stop, trace to root cause, fix once properly
 
 ## Stopping Conditions
 

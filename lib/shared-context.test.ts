@@ -10,6 +10,8 @@ import {
   readSummary,
   readAllSummaries,
   formatSummariesForHandoff,
+  getCompressionMetrics,
+  resetCompressionMetrics,
   clearSharedContext,
 } from "./shared-context.js";
 import { markDocDirty, clearDocTracking } from "./doc-tracker.js";
@@ -19,6 +21,21 @@ import assert from "assert";
 
 const TEST_DIR = "/tmp/relentless-shared-context-test-" + Date.now();
 mkdirSync(TEST_DIR, { recursive: true });
+
+resetCompressionMetrics();
+assert.deepStrictEqual(
+  getCompressionMetrics(),
+  {
+    total_summaries: 0,
+    total_summary_chars: 0,
+    handoff_requests: 0,
+    summary_hits: 0,
+    summary_misses: 0,
+    estimated_tokens_saved: 0,
+  },
+  "getCompressionMetrics should return zeroed metrics initially",
+);
+console.log("PASS: getCompressionMetrics returns zeroed metrics initially");
 
 assert.strictEqual(readMarkdownContext(TEST_DIR, "project-map"), "", "should return empty string when markdown file is missing");
 console.log("PASS: readMarkdownContext returns empty string when no file");
@@ -144,6 +161,43 @@ console.log("PASS: formatSummariesForHandoff formats correctly");
 assert.strictEqual(formatSummariesForHandoff(TEST_DIR, []), "", "handoff with no files should return empty string");
 console.log("PASS: formatSummariesForHandoff returns empty for no files");
 
+const metricsDir = "/tmp/relentless-shared-context-metrics-" + Date.now();
+mkdirSync(metricsDir, { recursive: true });
+resetCompressionMetrics();
+writeSummary(metricsDir, {
+  file: "src/feature/gotcha.ts",
+  summary: "Framework gotcha summary for route segments.",
+  agent: "artisan",
+  timestamp: "2026-03-12T02:15:00.000Z",
+});
+formatSummariesForHandoff(metricsDir, ["src/feature/gotcha.ts", "src/feature/unknown.ts"]);
+assert.deepStrictEqual(
+  getCompressionMetrics(),
+  {
+    total_summaries: 1,
+    total_summary_chars: "Framework gotcha summary for route segments.".length,
+    handoff_requests: 1,
+    summary_hits: 1,
+    summary_misses: 1,
+    estimated_tokens_saved: 500,
+  },
+  "writeSummary and formatSummariesForHandoff should update compression metrics",
+);
+resetCompressionMetrics();
+assert.deepStrictEqual(
+  getCompressionMetrics(),
+  {
+    total_summaries: 0,
+    total_summary_chars: 0,
+    handoff_requests: 0,
+    summary_hits: 0,
+    summary_misses: 0,
+    estimated_tokens_saved: 0,
+  },
+  "resetCompressionMetrics should reset all metrics to zero",
+);
+console.log("PASS: compression metrics update and reset correctly");
+
 markDocDirty(TEST_DIR, "lib/AGENTS.md", "lib/shared-context.ts was modified", "lib/shared-context.ts", "artisan");
 const summaryWithDirtyDocs = formatSharedContext(TEST_DIR, 2, 1);
 assert.ok(summaryWithDirtyDocs.includes("Documentation Status"), "formatSharedContext should include documentation status when dirty docs exist");
@@ -174,4 +228,5 @@ console.log("PASS: reads return empty defaults after clearSharedContext");
 rmSync(TEST_DIR, { recursive: true });
 rmSync(emptySummaryDir, { recursive: true });
 rmSync(docsOnlyDir, { recursive: true });
+rmSync(metricsDir, { recursive: true });
 console.log("All shared context tests passed.");

@@ -325,6 +325,52 @@ PASS
 **REFACTOR**
 Extract validation for multiple fields if needed.
 
+## Minimum Test Depth Requirements
+
+Different component types require different minimum test coverage. Smoke tests (checking that something exists) are NEVER sufficient for business logic.
+
+### By Component Type
+
+| Component Type | Minimum Tests Required |
+|---------------|----------------------|
+| **API Router/Endpoint** | Input validation (reject invalid), Auth guard (reject unauth), Happy path (correct return shape), Error cases (NOT_FOUND, FORBIDDEN, CONFLICT) |
+| **Business Logic Function** | Happy path, Edge cases (empty input, boundary values), Error handling (throw on invalid) |
+| **React Component** | Renders without crash, Key user interactions, Conditional rendering states |
+| **Database Model/Query** | CRUD operations, Constraint validation (unique, required), Relationship integrity |
+| **Utility/Helper** | Core behavior, Edge cases, Type validation |
+| **Middleware** | Pass-through (valid request), Block (invalid request), Error propagation |
+
+### Smoke Tests Are Not Tests
+
+A smoke test checks that something exists:
+```typescript
+// BAD: Smoke test - proves nothing about behavior
+test('auth router exists', () => {
+  expect(authRouter).toBeDefined();
+  expect(authRouter.register).toBeDefined();
+});
+```
+
+A behavior test checks that something works correctly:
+```typescript
+// GOOD: Tests actual behavior
+test('register rejects duplicate email', async () => {
+  await createUser({ email: 'test@example.com' });
+  const result = await caller.auth.register({ email: 'test@example.com', password: 'pass123' });
+  expect(result.error.code).toBe('CONFLICT');
+});
+```
+
+**Rule:** If your test would still pass with an empty function body, it's a smoke test. Rewrite it.
+
+### Test Quality Gate
+
+Before marking a test task complete, verify:
+- [ ] At least 1 error/edge case per procedure/function
+- [ ] No test passes with empty implementation
+- [ ] Tests verify behavior, not existence
+- [ ] Test names describe expected behavior, not implementation
+
 ## Relentless Execution Additions
 
 - Check `.relentless/halt` before each RED-GREEN cycle

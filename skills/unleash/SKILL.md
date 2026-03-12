@@ -43,6 +43,32 @@ Dispatch scout to understand the codebase:
 - What patterns and conventions are used?
 - Are there existing tests? Build steps?
 
+### Pre-Implementation Validation
+
+Scout MUST verify the following BEFORE Conductor dispatches any implementation agents:
+
+1. **Dependency Verification:**
+   - All packages referenced in the plan exist in `package.json`
+   - Flag any missing packages: "MISSING DEPENDENCY: `package-name` referenced in plan but not in package.json"
+   - Suggest install commands for missing packages
+
+2. **Directory Structure Validation:**
+   - Verify planned directory structure matches existing project layout
+   - Flag conflicts: route groups vs segments, module boundaries, etc.
+   - Check that import paths in the plan resolve to existing or planned files
+
+3. **Import Resolution Check:**
+   - Verify that components/modules referenced by `@/` or relative imports actually exist
+   - Flag phantom imports: "PHANTOM IMPORT: `@/components/ui/Button` -- file does not exist"
+   - Distinguish between "will be created by this plan" and "assumed to exist"
+
+4. **Framework Gotcha Scan:**
+   - Check `.relentless/lessons.jsonl` for known issues with the project's framework stack
+   - Cross-reference plan's framework usage patterns against known gotchas
+   - Report any matches: "GOTCHA WARNING: [framework] [issue] -- see lesson [id]"
+
+**Scout reports these findings to Conductor. If Critical issues found (missing deps, phantom imports), Conductor MUST resolve them before dispatching implementation agents.**
+
 Use Scout's findings to refine file assignments in the plan.
 
 **Shared Context:** Scout should write its findings to the shared knowledge base so other agents can reuse them without re-scanning:
@@ -59,6 +85,44 @@ These live in `.relentless/shared-context/` and are readable by all agents.
 Before any parallel dispatch, pre-assign which files each agent may touch:
 - No two agents receive the same file
 - If a task requires a shared file, sequence it after the first agent finishes
+
+## Phase 4b: Parallel Dispatch Analysis
+
+Before dispatching agents, Conductor MUST analyze the plan's dependency graph to maximize parallelism:
+
+### Dependency Classification
+
+For each task in the plan, classify its dependencies:
+
+| Dependency Type | Example | Can Parallelize? |
+|----------------|---------|-----------------|
+| **Type dependency** | Frontend uses backend types | No -- must sequence |
+| **Import dependency** | Component imports utility | No -- must sequence |
+| **Data dependency** | Page fetches from API | No -- must sequence |
+| **No dependency** | Layout components, static pages, config files | Yes -- parallelize |
+| **Shared file** | Multiple tasks touch same file | No -- sequence by file |
+
+### Parallel Track Discovery
+
+1. List all tasks and their file inputs/outputs
+2. Build dependency edges: Task A -> Task B if B reads files A writes
+3. Identify independent subgraphs -- these can run in parallel
+4. Assign each parallel track to a separate agent
+
+### Common Parallel Opportunities
+
+| Track A (Artisan) | Track B (Maestro/Artisan) | Prerequisite |
+|-------------------|---------------------------|-------------|
+| Backend routes/logic | Layout components, static UI | None |
+| Database schema + seed | Chart/visualization components | None |
+| Auth middleware | Shared utilities, helpers | None |
+| API implementation | Test scaffolding (structure only) | None |
+
+### Merge Point
+
+After parallel tracks complete, sequential work handles tasks that depend on both tracks (e.g., pages that use both backend types and UI components).
+
+**Rule:** If Conductor dispatches all tasks sequentially despite parallel opportunities, it MUST document why parallelism was not possible (e.g., "all tasks share the same files").
 
 ## Phase 5: Parallel Dispatch
 
@@ -103,12 +167,32 @@ Every handoff MUST include:
 
 Apply `relentless:pursuit` to drive to completion.
 
-## Phase 7: Final Validation
+## Phase 7: Final Validation (MANDATORY)
 
-When pursuit completes:
-1. Invoke `relentless:verification-before-completion`
-2. Invoke `relentless:requesting-code-review` (dispatches Sentinel)
-3. Invoke `relentless:finishing-a-development-branch`
+This phase is NON-NEGOTIABLE. Skipping it was identified as a critical gap in performance analysis.
+
+When pursuit loop completes:
+
+1. **Verification gate:**
+   - Invoke `relentless:verification-before-completion`
+   - Run ALL gate commands: typecheck, build, test
+   - If any fail: return to pursuit loop with fix todos
+
+2. **Sentinel security review (MANDATORY):**
+   - Invoke `relentless:requesting-code-review` to dispatch Sentinel
+   - Sentinel checklist:
+     - [ ] Authentication/authorization on all endpoints
+     - [ ] Input validation on all user inputs
+     - [ ] No duplicated utility code (DRY)
+     - [ ] Error handling covers edge cases
+     - [ ] No hardcoded secrets or credentials
+     - [ ] Rate limiting on auth endpoints
+   - If Sentinel finds Critical issues: return to pursuit loop with fix todos
+   - Phase 7 does NOT complete until Sentinel approves
+
+3. **Branch completion:**
+   - Invoke `relentless:finishing-a-development-branch`
+   - Only after Sentinel approval
 
 ## Phase 8: Report to User
 

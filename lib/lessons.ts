@@ -20,6 +20,7 @@ export interface Lesson {
 
 export type LessonCategory =
   | "type_error"
+  | "framework_gotcha"
   | "import_error"
   | "config_error"
   | "test_failure"
@@ -146,6 +147,16 @@ export function categorizeError(error: string, file?: string): LessonCategory {
   const lower = text.toLowerCase();
 
   if (
+    /route group/i.test(text) ||
+    /route segment/i.test(text) ||
+    /cannot find module/i.test(text) ||
+    /module not found/i.test(text) ||
+    ((/\bdependency\b/.test(lower) || /\bpackage\b/.test(lower)) && (/\bmissing\b/.test(lower) || /not found/i.test(text)))
+  ) {
+    return "framework_gotcha";
+  }
+
+  if (
     /is not assignable to type/i.test(text) ||
     /property\s+.+\s+does not exist/i.test(text) ||
     /\btype\b/.test(lower)
@@ -178,6 +189,19 @@ export function categorizeError(error: string, file?: string): LessonCategory {
     return "pattern";
   }
   return "other";
+}
+
+export function getGotchasForStack(projectDir: string | undefined, stack: string[]): Lesson[] {
+  const lessons = readLessons(projectDir);
+  return lessons.filter(
+    (l) =>
+      l.category === "framework_gotcha" &&
+      stack.some(
+        (s) =>
+          l.pattern.toLowerCase().includes(s.toLowerCase()) ||
+          l.examples.some((e) => e.toLowerCase().includes(s.toLowerCase())),
+      ),
+  );
 }
 
 /**
