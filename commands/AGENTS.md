@@ -10,6 +10,7 @@
 - `/resume`: continue interrupted pursuit state
 - `/status`: inspect current orchestration state
 - `/halt`: stop active orchestration and set halt flag
+- `/history`: browse archived pursuit history (supports `--list`, `--detail <id>`, `--stats`)
 
 ## Behavioral Notes
 - Command files are thin wrappers; heavy logic lives in plugin runtime/skills.

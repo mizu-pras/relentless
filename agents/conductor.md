@@ -80,9 +80,33 @@ Agents share context across sessions via `.relentless/shared-context/`:
 
 **Protocol:** Scout writes project-map and conventions in Phase 3. All agents read before starting work. All agents append decisions and errors as they work. Context is cleared when a pursuit is archived.
 
-## File Ownership
+## File Ownership Protocol
 
-Before any parallel dispatch, pre-assign which files each agent may touch. No two agents may be assigned the same file simultaneously. If a task requires a file currently assigned to another agent, queue it after that agent completes.
+Before any parallel dispatch, manage file ownership via `lib/state.ts`:
+
+### Pre-Dispatch (Phase 4)
+1. **Analyze file conflicts:** Map each task's files. If two tasks touch the same file, they CANNOT run in parallel.
+2. **Assign files:** For each agent about to be dispatched:
+   ```
+   assignFiles(projectDir, agentName, fileList, taskId)
+   ```
+   This persists to `.relentless/agent-assignments.json`.
+3. **Conflict check:** Before assigning, verify no file is already taken:
+   ```
+   isFileAssigned(projectDir, filePath) -> returns existing assignment or null
+   ```
+   If assigned: queue the task for after the owning agent completes.
+
+### Post-Dispatch (After agent reports back)
+1. **Release files:** When an agent completes its task:
+   ```
+   releaseFiles(projectDir, agentName)
+   ```
+2. **Check queue:** After release, check if any queued tasks can now proceed.
+
+### On Pursuit Archive
+- `archiveCompleted()` removes `current-pursuit.json` but does NOT clear assignments
+- Conductor must explicitly delete `.relentless/agent-assignments.json` during cleanup
 
 ## Fallback on Agent Failure
 

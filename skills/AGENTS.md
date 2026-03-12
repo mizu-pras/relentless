@@ -11,6 +11,8 @@
 - **ui-craft/** — 5-phase UI/UX design process. Auto-loaded by Maestro.
 - **using-relentless/** — Bootstrap skill. Injected into every session.
 - **chunk-gate/** — Intermediate build+test verification between implementation chunks. On-demand, enforced by pursuit loop.
+- **history/** — Pursuit archive browser. On-demand via `/history`.
+- **preflight/** — Pre-pursuit dependency and environment verification. On-demand, invoked by unleash Phase 3.
 
 ### Workflow Skills (forked from superpowers, MIT License)
 - **brainstorming/** — Collaborative design exploration before implementation.

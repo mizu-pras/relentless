@@ -115,6 +115,23 @@ Track the ratio of feature work vs fix work during the pursuit:
 | `.relentless/halt` set | STOP — save state for /resume |
 | Circuit breaker tripped | STOP — report error details |
 
+## Archive on Completion
+
+When the pursuit reaches COMPLETE status (all criteria met):
+
+1. Call `archiveCompleted()` from `lib/state.ts` — this:
+   - Archives pursuit state to `.relentless/history/{timestamp}-{task-name}.json`
+   - Extracts lessons from error-log before clearing
+   - Clears shared context (`.relentless/shared-context/`)
+   - Clears compaction snapshot
+   - Removes `current-pursuit.json`
+2. Verify archive succeeded (function returns archive path, or null on failure)
+3. Report: "Pursuit archived to {path}. Lessons extracted."
+
+If archive returns null, it may mean archiving was already performed by a prior step (e.g., the pursuit skill archives first in the unleash pipeline). A null return is NOT an error if `current-pursuit.json` no longer exists — it simply means archiving already happened.
+
+**Note:** In the full `/unleash` pipeline, `archiveCompleted()` is called here (by pursuit) as the primary archive point. Subsequent calls in finishing-a-development-branch Step 6 or unleash Phase 8 will safely return null since the state is already archived.
+
 ## Reporting on Stop
 
 Always report:

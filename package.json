@@ -7,10 +7,16 @@
     "build": "tsc -p lib/tsconfig.json",
     "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js",
     "test:only": "node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js",
-    "typecheck": "tsc -p lib/tsconfig.json --noEmit"
+    "typecheck": "tsc -p lib/tsconfig.json --noEmit",
+    "dev": "tsc -p lib/tsconfig.json --watch",
+    "lint": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts'",
+    "lint:fix": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts' --fix"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0"
   }
 }

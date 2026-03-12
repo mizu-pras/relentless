@@ -43,6 +43,16 @@ Dispatch scout to understand the codebase:
 - What patterns and conventions are used?
 - Are there existing tests? Build steps?
 
+### Preflight Checks
+
+Before detailed reconnaissance, run the `relentless:preflight` skill to verify basic environment health:
+- Dependencies installed
+- CLI tools available
+- Build output exists
+- Config files parse correctly
+
+If preflight fails, resolve issues before continuing with reconnaissance.
+
 ### Pre-Implementation Validation
 
 Scout MUST verify the following BEFORE Conductor dispatches any implementation agents:
@@ -82,9 +92,23 @@ These live in `.relentless/shared-context/` and are readable by all agents.
 
 ## Phase 4: File Ownership Assignment
 
-Before any parallel dispatch, pre-assign which files each agent may touch:
-- No two agents receive the same file
-- If a task requires a shared file, sequence it after the first agent finishes
+Before any parallel dispatch, use `assignFiles()` from `lib/state.ts`:
+
+1. **Map files per task:** List all files each task will touch (create or modify)
+2. **Detect conflicts:** If File X appears in Task A and Task B, they CANNOT run in parallel
+3. **Assign ownership:**
+   ```
+   assignFiles(projectDir, "artisan-1", ["src/auth/token.ts", "src/auth/middleware.ts"], "task-id")
+   ```
+4. **Verify no double-assignment:** Call `isFileAssigned()` for every file before assigning
+5. **Queue conflicting tasks:** If a file is taken, the dependent task runs after the owner completes
+
+After each agent completes:
+```
+releaseFiles(projectDir, "artisan-1")
+```
+
+Then check if any queued tasks can now be dispatched.
 
 ## Phase 4b: Parallel Dispatch Analysis
 
@@ -133,6 +157,8 @@ Dispatch agents by category:
 - `visual` tasks → maestro (include handoff schema) — maestro should load `relentless:ui-craft`
 - `reason` tasks → sentinel (include handoff schema) — sentinel should load `relentless:systematic-debugging`
 - `quick` tasks → scout (read-only, no skill loading required — scout is skill-free by design)
+
+**File ownership enforcement:** Before dispatching, call `assignFiles()` for each agent. After receiving results, call `releaseFiles()`. Never dispatch two agents with overlapping file assignments.
 
 **Agent skill loading:** Include the relevant skill name in the handoff constraints so agents load them explicitly, not by convention. Scout is exempt — it only reads, never writes.
 
@@ -194,13 +220,19 @@ When pursuit loop completes:
    - Invoke `relentless:finishing-a-development-branch`
    - Only after Sentinel approval
 
-## Phase 8: Report to User
+## Phase 8: Archive & Report to User
 
-Summarize:
+**Archive pursuit state (idempotent):**
+1. Call `archiveCompleted()` — archives state to `.relentless/history/`, extracts lessons, clears shared context
+2. If it returns null, the pursuit was likely already archived by the pursuit loop's "Archive on Completion" step — this is normal, not an error
+3. Only warn if `current-pursuit.json` still exists AND `archiveCompleted()` returned null (indicates actual failure)
+
+**Summarize:**
 - What was built
 - Files changed
 - Tests passing
 - Any known limitations or follow-up items
+- Archive location (if successful)
 
 ## Edge Cases
 

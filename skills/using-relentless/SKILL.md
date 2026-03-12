@@ -10,7 +10,7 @@ If you were dispatched as a subagent to execute a specific task, skip this skill
 
 ## Relentless Quick Reference
 
-**Orchestration commands:** `/unleash`, `/recon`, `/pursuit`, `/halt`, `/status`, `/resume`
+**Orchestration commands:** `/unleash`, `/recon`, `/pursuit`, `/halt`, `/status`, `/resume`, `/history`
 
 **When to use orchestration:** Multi-file features, architectural changes, tasks needing multiple agents.
 **When NOT to:** Simple edits, single-file fixes, questions, quick tasks. Just do the work directly.
@@ -23,6 +23,6 @@ If you were dispatched as a subagent to execute a specific task, skip this skill
 
 ## Skills (load on-demand via `skill` tool, only when relevant)
 
-`intent-gate` · `todo-enforcer` · `pursuit` · `unleash` · `recon` · `ui-craft` · `brainstorming` · `writing-plans` · `test-driven-development` · `systematic-debugging` · `verification-before-completion` · `requesting-code-review` · `receiving-code-review` · `finishing-a-development-branch` · `using-git-worktrees` · `writing-skills`
+`intent-gate` · `todo-enforcer` · `pursuit` · `unleash` · `recon` · `ui-craft` · `history` · `preflight` · `brainstorming` · `writing-plans` · `test-driven-development` · `systematic-debugging` · `verification-before-completion` · `requesting-code-review` · `receiving-code-review` · `finishing-a-development-branch` · `using-git-worktrees` · `writing-skills`
 
 Skills location: `/home/mizu/.config/opencode/skills/relentless/`

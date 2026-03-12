@@ -230,18 +230,28 @@ git worktree remove <worktree-path>
 
 After Options 1, 2, or 4 complete:
 
-```bash
-# Ensure pursuit state is archived
-mkdir -p .relentless/history
+1. **Archive pursuit state (idempotent):**
+   - Call `archiveCompleted()` from `lib/state.ts`
+   - This archives to `.relentless/history/`, extracts lessons from error-log, clears shared context and compaction snapshot
+   - If it returns a path: archive succeeded here
+   - If it returns null: check if `current-pursuit.json` still exists
+     - If NOT present: pursuit was already archived by a prior step (normal in `/unleash` pipeline) — proceed
+     - If present: actual archive failure — warn but continue with cleanup
 
-# Move or copy current pursuit state for audit trail
-# (implementation varies by repo conventions)
+2. **Clean up agent assignments:**
+   - The `archiveCompleted()` function removes `current-pursuit.json`
+   - Manually delete `.relentless/agent-assignments.json` if it exists:
+     ```bash
+     rm -f .relentless/agent-assignments.json
+     ```
 
-# Mark all todos completed in current pursuit state
-# and clear agent assignments
-```
+3. **Verify cleanup:**
+   - `.relentless/current-pursuit.json` should NOT exist
+   - `.relentless/history/` should contain the new archive file
+   - `.relentless/agent-assignments.json` should NOT exist
 
 Required outcomes:
-- `.relentless/history/` contains archived pursuit state
-- `.relentless/agent-assignments.json` is cleaned up
-- Active pursuit state reflects all todos completed
+- `.relentless/history/` contains archived pursuit state with lessons extracted
+- `.relentless/agent-assignments.json` is removed
+- `.relentless/current-pursuit.json` is removed
+- Shared context is cleared for next pursuit
