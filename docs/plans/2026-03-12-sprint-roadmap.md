@@ -24,6 +24,7 @@ What follows is a 4-sprint plan to take Relentless from v0.1.0 to v0.2.0.
 **Theme:** Wire up existing code that was built but never connected, fix DX gaps.
 **Estimated effort:** ~3-4 hours
 **Version target:** v0.1.1
+**Status:** ✅ Complete — committed as `fd29f86`
 
 ### 1.1 Auto-Archive Pursuit on Completion
 
@@ -160,6 +161,47 @@ What follows is a 4-sprint plan to take Relentless from v0.1.0 to v0.2.0.
 - `npm run lint` runs ESLint on all `.ts` files in `lib/` and `.opencode/plugins/`
 - No blocking errors on current codebase (warnings OK)
 - CI-friendly (exit code 0 on pass, 1 on fail)
+
+---
+
+### Sprint 1 — Known Limitations & Follow-Up
+
+Tercatat saat Sprint 1 selesai. Bisa dikerjakan di session berikutnya.
+
+#### KL-S1-1: Step 6 salah posisi di finishing-a-development-branch
+
+**Lokasi:** `skills/finishing-a-development-branch/SKILL.md` baris 229
+**Masalah:** Step 6 (Relentless Pursuit Cleanup) terletak di bawah heading `## Integration` (line 218), bukan di bawah `## The Process` bersama Step 0-5. Agen yang membaca secara linear akan melihat Step 5 → Quick Reference → Common Mistakes → Red Flags → Integration → Step 6, yang membingungkan.
+**Dampak:** Kosmetik — agent masih bisa menemukan Step 6, tapi hierarchy heading salah.
+**Solusi:** Pindahkan `### Step 6: Relentless Pursuit Cleanup` ke sebelum `## Quick Reference` agar masuk dalam flow `## The Process`.
+**Prioritas:** Low
+
+#### KL-S1-2: Step 5 kontradiksi internal (pre-existing)
+
+**Lokasi:** `skills/finishing-a-development-branch/SKILL.md` baris 163
+**Masalah:** Step 5 header bilang "**For Options 1, 2, 4:**" (menyiratkan Option 2 menghapus worktree). Tapi:
+- Common Mistakes (line 198): "Only cleanup for Options 1 and 4"
+- Red Flags (line 216): "Clean up worktree for Options 1 & 4 only"
+- Quick Reference table (line 183): Option 2 "Keep Worktree: ✓"
+**Dampak:** Agent bisa bingung — ikut Step 5 header atau ikut tabel/red-flags?
+**Solusi:** Ubah Step 5 "For Options 1, 2, 4" menjadi "For Options 1 and 4" agar konsisten.
+**Prioritas:** Low
+
+#### KL-S1-3: History skill referensi status `cancelled` yang belum formal
+
+**Lokasi:** `skills/history/SKILL.md` baris 70
+**Masalah:** Detail mode menampilkan todos dengan status `completed`, `pending`, `cancelled`. Tapi `PursuitTodo.status` di `lib/state.ts` hanya tipe `string` — hanya `completed`, `in_progress`, `pending` yang digunakan di codebase. `cancelled` belum pernah di-set oleh kode manapun.
+**Dampak:** Tidak ada bug, tapi menampilkan status yang secara praktis tidak pernah muncul.
+**Solusi:** Definisikan status sebagai union type di `PursuitTodo`, atau ubah history skill untuk menampilkan semua status yang ada (apapun string-nya).
+**Prioritas:** Low
+
+#### KL-S1-4: Preflight skill tidak punya command wrapper standalone
+
+**Lokasi:** `skills/preflight/SKILL.md` — tidak ada `commands/preflight.md`
+**Masalah:** Preflight hanya bisa dipanggil otomatis dari unleash Phase 3 atau manual via `relentless:preflight` skill. Tidak ada `/preflight` command langsung.
+**Dampak:** User tidak bisa menjalankan preflight check secara ad-hoc tanpa memulai full `/unleash`.
+**Solusi:** Buat `commands/preflight.md` thin wrapper, atau dokumentasikan bahwa preflight adalah sub-skill yang tidak memerlukan command sendiri.
+**Prioritas:** Low
 
 ---
 
@@ -416,12 +458,13 @@ What follows is a 4-sprint plan to take Relentless from v0.1.0 to v0.2.0.
 
 ---
 
-## Sprint 4: Advanced Capabilities
+## Sprint 4: Advanced Capabilities ✅
 
 **Theme:** Power-user features that expand what Relentless can do in complex scenarios.
 **Estimated effort:** ~8-10 hours
 **Version target:** v0.2.0
 **Depends on:** Sprint 3 completed
+**Status:** Complete — v0.2.0
 
 ### 4.1 Pursuit Templates
 
@@ -619,3 +662,41 @@ These are inherited from the original design spec and should be resolved as they
 | Pursuit branching state complexity | Sprint 4 scope creep | Mark as experimental, limit to 3 branches |
 | CI/CD headless mode scope | Sprint 4 may be too large | Start with recon + health only, defer verify + metrics |
 | Cross-project lessons privacy | User trust concern | Default off, explicit opt-in, no cloud sync |
+
+---
+
+## Sprint 4 — Known Limitations & Follow-Up
+
+Tercatat saat Sprint 4 selesai. Bisa dikerjakan di session berikutnya.
+
+### KL-1: `parseJsonc` rusak kalau ada URL di dalam string value
+
+**Lokasi:** `lib/templates.ts:33`, `lib/config.ts:93`, `bin/relentless.ts:183` (inline)
+**Masalah:** Regex `/\/\/.*$/gm` menganggap `//` di dalam string (misal `"https://example.com"`) sebagai komentar, sehingga string terpotong dan JSON gagal parse.
+**Dampak:** Belum ada file JSONC yang mengandung URL, jadi belum pernah terjadi. Tapi akan jadi masalah kalau template atau config mulai pakai URL.
+**Solusi:** Ekstrak ke `lib/jsonc.ts` sebagai shared utility, ganti regex dengan parser yang sadar konteks string (skip content di dalam quotes). Sekaligus menghapus duplikasi di 3 tempat (DRY).
+**Prioritas:** Medium
+
+### KL-2: `formatBranchList` hardcode max branches = 3
+
+**Lokasi:** `lib/branching.ts` — `formatBranchList()`
+**Masalah:** Selalu menampilkan `x/3` walaupun config `branching.max_branches` diset ke angka lain.
+**Dampak:** Tampilan saja, data tetap benar. Max branch enforcement di `createBranch()` sudah membaca registry value dengan benar.
+**Solusi:** Tambah parameter `maxBranches: number` ke `formatBranchList()`, default ke `DEFAULT_MAX_BRANCHES` untuk backward compatibility. Update caller di skill.
+**Prioritas:** Low
+
+### KL-3: `npm test` tidak compile `bin/`
+
+**Lokasi:** `package.json` scripts
+**Masalah:** `npm test` hanya build `lib/` dan menjalankan test. CLI di `bin/` di-compile terpisah via `npm run build:bin` atau `npm run build:all`.
+**Dampak:** Kalau ada perubahan di `bin/relentless.ts` yang bikin compile error, `npm test` tidak akan menangkap.
+**Solusi:** Tambahkan `tsc -p bin/tsconfig.json` ke script `test`, atau buat `test:bin` terpisah untuk verify compile.
+**Prioritas:** Low
+
+### KL-4: Pursuit branching belum ada command `/merge` dan `/abandon`
+
+**Lokasi:** `commands/` — hanya ada `branch.md`, `branches.md`, `switch.md`
+**Masalah:** Fungsi `mergeBranch()` dan `abandonBranch()` sudah ada di `lib/branching.ts` (tested), tapi command wrapper `.md` untuk `/merge` dan `/abandon` belum dibuat.
+**Dampak:** Merge dan abandon hanya bisa dilakukan melalui skill instructions di `skills/branching/SKILL.md`, bukan via slash command langsung.
+**Solusi:** Buat `commands/merge.md` dan `commands/abandon.md`, update `commands/AGENTS.md` dan `skills/using-relentless/SKILL.md`.
+**Prioritas:** Medium
