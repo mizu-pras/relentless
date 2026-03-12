@@ -48,3 +48,4 @@ For project-level overrides, create `.opencode/relentless.jsonc` in your project
 
 - Design spec: `docs/specs/2026-03-11-relentless-design.md`
 - Implementation plan: `docs/plans/2026-03-11-relentless-implementation.md`
+- Future work: `docs/specs/2026-03-11-relentless-design.md` § 14.1

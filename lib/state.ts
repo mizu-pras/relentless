@@ -1,9 +1,13 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
+import { clearSharedContext } from "./shared-context.js";
+import { clearCompactionSnapshot } from "./compaction.js";
 
 const STATE_DIR = ".relentless";
 const PURSUIT_FILE = "current-pursuit.json";
 const HALT_FILE = "halt";
+const HISTORY_DIR = "history";
+const ASSIGNMENTS_FILE = "agent-assignments.json";
 
 export interface PursuitTodo {
   id: string;
@@ -31,6 +35,13 @@ export interface PursuitState {
   halted?: boolean;
   updated_at?: string;
   version?: number;
+}
+
+export interface AgentAssignment {
+  agent: string;
+  files: string[];
+  task_id?: string;
+  assigned_at: string;
 }
 
 function stateDir(projectDir?: string): string {
@@ -65,6 +76,98 @@ export function writePursuitState(projectDir: string | undefined, state: Pursuit
   };
   writeFileSync(path, JSON.stringify(snapshot, null, 2), "utf8");
   return snapshot;
+}
+
+function sanitizeTaskName(task?: string): string {
+  if (!task) return "untitled";
+  const cleaned = task.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return cleaned || "untitled";
+}
+
+function archiveTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join("-");
+}
+
+export function archiveCompleted(projectDir?: string): string | null {
+  const dir = stateDir(projectDir);
+  const currentPath = join(dir, PURSUIT_FILE);
+  if (!existsSync(currentPath)) return null;
+
+  const state = readPursuitState(projectDir);
+  if (!state) return null;
+
+  const historyDir = join(ensureStateDir(projectDir), HISTORY_DIR);
+  if (!existsSync(historyDir)) {
+    mkdirSync(historyDir, { recursive: true });
+  }
+
+  const now = new Date();
+  const archiveName = `${archiveTimestamp(now)}-${sanitizeTaskName(state.task)}.json`;
+  const archivePath = join(historyDir, archiveName);
+  const archived = {
+    ...state,
+    archived_at: now.toISOString(),
+  };
+
+  writeFileSync(archivePath, JSON.stringify(archived, null, 2), "utf8");
+  unlinkSync(currentPath);
+  try {
+    clearSharedContext(projectDir);
+  } catch (e) {
+    console.warn("[relentless] Failed to clear shared context after archive:", e);
+  }
+  try {
+    clearCompactionSnapshot(projectDir);
+  } catch (e) {
+    console.warn("[relentless] Failed to clear compaction snapshot after archive:", e);
+  }
+  return archivePath;
+}
+
+export function readAssignments(projectDir?: string): AgentAssignment[] {
+  const path = join(stateDir(projectDir), ASSIGNMENTS_FILE);
+  if (!existsSync(path)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8"));
+    return Array.isArray(parsed) ? (parsed as AgentAssignment[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeAssignments(projectDir: string | undefined, assignments: AgentAssignment[]): void {
+  const dir = ensureStateDir(projectDir);
+  writeFileSync(join(dir, ASSIGNMENTS_FILE), JSON.stringify(assignments, null, 2), "utf8");
+}
+
+export function isFileAssigned(projectDir: string | undefined, filePath: string): AgentAssignment | null {
+  const assignments = readAssignments(projectDir);
+  const found = assignments.find((assignment) => assignment.files.includes(filePath));
+  return found || null;
+}
+
+export function assignFiles(projectDir: string | undefined, agent: string, files: string[], taskId?: string): void {
+  const assignments = readAssignments(projectDir).filter((assignment) => assignment.agent !== agent);
+  assignments.push({
+    agent,
+    files,
+    ...(taskId ? { task_id: taskId } : {}),
+    assigned_at: new Date().toISOString(),
+  });
+  writeAssignments(projectDir, assignments);
+}
+
+export function releaseFiles(projectDir: string | undefined, agent: string): void {
+  const assignments = readAssignments(projectDir).filter((assignment) => assignment.agent !== agent);
+  writeAssignments(projectDir, assignments);
 }
 
 export function isHalted(projectDir?: string): boolean {

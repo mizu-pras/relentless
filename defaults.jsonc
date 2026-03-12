@@ -16,7 +16,8 @@
   "circuit_breaker": {
     "max_consecutive_failures": 3,
     "max_injections_per_minute": 3,
-    "token_budget_threshold": 0.85
+    "token_budget_threshold": 0.85,
+    "proactive_threshold": 0.75
   },
 
   // Pursuit (completion loop) settings

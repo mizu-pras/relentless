@@ -13,6 +13,7 @@ interface CircuitBreakerConfig {
   max_consecutive_failures: number;
   max_injections_per_minute: number;
   token_budget_threshold: number;
+  proactive_threshold: number;
 }
 
 interface PursuitConfig {
@@ -49,6 +50,7 @@ export function loadConfig(projectDir?: string): RelentlessConfig {
       max_consecutive_failures: 3,
       max_injections_per_minute: 3,
       token_budget_threshold: 0.85,
+      proactive_threshold: 0.75,
     },
     pursuit: {
       max_iterations: 10,

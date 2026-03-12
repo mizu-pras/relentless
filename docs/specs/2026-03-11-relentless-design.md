@@ -1096,6 +1096,36 @@ These are not optional deferrals — they must be answered empirically before wr
 
 ---
 
+## 14.1 Future Work
+
+Identified during the 2026-03-12 codebase review. Tracked here so nothing is forgotten.
+
+### High Priority
+
+1. **Integration tests for plugin lifecycle** — The plugin entry point (`.opencode/plugins/relentless.ts`) has zero tests. Need a test harness that can simulate OpenCode's plugin interface: system prompt injection, compaction hook, and event handlers. This is the only runtime code with no test coverage.
+
+2. **Auto-invoke `archiveCompleted()` at pursuit end** — `state.ts` now exports `archiveCompleted(projectDir)` which archives finished pursuits to `.relentless/history/`. However, nothing calls it automatically yet. The `pursuit` skill and `unleash` skill should invoke it when a pursuit reaches 100% or is explicitly stopped. Likely requires either: (a) Conductor calling it in Phase 7 of unleash, or (b) a plugin event hook that detects pursuit completion.
+
+3. **Wire `agent-assignments.json` into Conductor dispatch** — `state.ts` now exports `assignFiles()`, `releaseFiles()`, and `isFileAssigned()` for file ownership tracking. Conductor's Phase 4 (File Ownership Assignment) should use these functions instead of ad-hoc mental tracking. This prevents two agents from editing the same file in parallel dispatch.
+
+### Medium Priority
+
+4. **Tool definitions in plugin** — Currently, commands (`/unleash`, `/pursuit`, etc.) are markdown stubs that load skills. The design spec originally envisioned custom tool definitions (`relentless_unleash`, etc.) registered through the plugin SDK. Evaluate whether the skill-loading approach is sufficient long-term or if actual tool definitions would improve reliability and discoverability.
+
+5. **Resolve Open Question #1: Parallel dispatch** — Still unresolved. Does dispatching multiple `Task` tool calls in a single message actually execute concurrently in OpenCode? Empirical testing needed. If sequential, revise Phase 5 of unleash to use sequential dispatch with interleaved progress instead of true parallelism.
+
+6. **Resolve Open Question #2: Token budget API** — Still unresolved. Is context usage percentage available from the `@opencode-ai/plugin` SDK at runtime? Current implementation in the event handler estimates from cumulative `tokens.input` divided by `model.limit.context`, which is a rough approximation. Check if SDK exposes a more accurate metric.
+
+7. **Pursuit history viewer** — `.relentless/history/` now accumulates archived pursuit files, but there's no `/history` command to browse or search them. Consider adding a command that lists past pursuits with timestamps, task names, and completion percentages.
+
+### Low Priority
+
+8. **Watch mode for development** — `npm run build` must be run manually after each edit to `lib/*.ts`. A `"dev": "tsc -p lib/tsconfig.json --watch"` script would improve DX during development.
+
+9. **ESLint / linting** — No linter configured. `npm run typecheck` catches type errors but not style issues, unused imports, etc. Consider adding a minimal ESLint config.
+
+10. **Plugin error recovery** — If a required skill file is deleted or corrupted, the plugin currently logs a warning and continues with degraded functionality. Consider a health-check mechanism that reports which components are operational at startup.
+
 ---
 
 ## 15. Glossary

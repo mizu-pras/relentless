@@ -1,5 +1,19 @@
-import { readPursuitState, writePursuitState, isHalted, setHalt, clearHalt, formatStatus } from "./state.js";
-import { mkdirSync, rmSync } from "fs";
+import {
+  readPursuitState,
+  writePursuitState,
+  isHalted,
+  setHalt,
+  clearHalt,
+  formatStatus,
+  archiveCompleted,
+  readAssignments,
+  writeAssignments,
+  isFileAssigned,
+  assignFiles,
+  releaseFiles,
+} from "./state.js";
+import { mkdirSync, rmSync, existsSync } from "fs";
+import { join } from "path";
 import assert from "assert";
 
 const TEST_DIR = "/tmp/relentless-test-" + Date.now();
@@ -44,6 +58,34 @@ const status = formatStatus(stateWithTodos);
 assert.ok(status.includes("50%"), "status should show 50% progress");
 assert.ok(status.includes("T-002"), "status should show pending todo");
 console.log("PASS: formatStatus shows correct progress");
+
+const archivedPath = archiveCompleted(TEST_DIR);
+assert.ok(archivedPath, "should return archive path when pursuit exists");
+assert.strictEqual(existsSync(join(TEST_DIR, ".relentless", "current-pursuit.json")), false, "should remove current pursuit file");
+assert.strictEqual(existsSync(archivedPath), true, "should create archive file in history");
+assert.ok(archivedPath.includes(join(TEST_DIR, ".relentless", "history")), "archive should be written to history dir");
+console.log("PASS: archiveCompleted archives and removes current pursuit");
+
+assert.deepStrictEqual(readAssignments(TEST_DIR), [], "assignments should be empty initially");
+writeAssignments(TEST_DIR, [
+  {
+    agent: "artisan",
+    files: ["lib/state.ts", "lib/state.test.ts"],
+    task_id: "T-007",
+    assigned_at: "2026-03-12T00:00:00.000Z",
+  },
+]);
+const assignments = readAssignments(TEST_DIR);
+assert.strictEqual(assignments.length, 1, "should read back written assignments");
+assert.strictEqual(assignments[0].agent, "artisan", "should preserve agent field");
+assert.ok(isFileAssigned(TEST_DIR, "lib/state.ts"), "should report assigned file owner");
+assert.strictEqual(isFileAssigned(TEST_DIR, "lib/other.ts"), null, "should return null for unassigned file");
+assignFiles(TEST_DIR, "sentinel", ["lib/circuit-breaker.ts"], "T-008");
+assert.ok(isFileAssigned(TEST_DIR, "lib/circuit-breaker.ts"), "assignFiles should persist new assignments");
+releaseFiles(TEST_DIR, "artisan");
+assert.strictEqual(isFileAssigned(TEST_DIR, "lib/state.ts"), null, "releaseFiles should remove assignments for agent");
+assert.ok(isFileAssigned(TEST_DIR, "lib/circuit-breaker.ts"), "releaseFiles should keep other agent assignments");
+console.log("PASS: agent assignment read/write/check/assign/release");
 
 rmSync(TEST_DIR, { recursive: true });
 console.log("All state tests passed.");

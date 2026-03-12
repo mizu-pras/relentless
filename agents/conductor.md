@@ -42,7 +42,10 @@ When dispatching any subagent, always provide a structured handoff:
 ```json
 {
   "task": "Clear, specific goal statement",
-  "context_files": ["list of relevant files"],
+  "context_summary": {
+    "src/auth/token.ts": "JWT token generation and verification. Has generateToken() and verifyToken().",
+    "src/auth/middleware.ts": "Express middleware, checks Authorization header. Returns 401 on invalid."
+  },
   "assigned_files": ["files this agent may touch"],
   "constraints": [
     "Skip brainstorming — plan already provided by Conductor",
@@ -52,9 +55,30 @@ When dispatching any subagent, always provide a structured handoff:
   ],
   "expected_output": "Description of deliverable",
   "related_todos": ["T-001", "T-002"],
-  "approach": "tdd"
+  "approach": "tdd",
+  "shared_context": "Read .relentless/shared-context/ for project-map, conventions, and prior decisions before starting"
 }
 ```
+
+### Handoff Compression
+
+Replace `context_files` (list of paths) with `context_summary` (pre-digested file descriptions) to save agents from re-reading files:
+
+1. **During Scout reconnaissance (Phase 3):** Scout writes file summaries via `writeSummary()` to `.relentless/shared-context/file-summaries.jsonl`
+2. **During dispatch (Phase 5):** Conductor embeds summaries in handoffs using `formatSummariesForHandoff()` or writes them inline
+3. **Agents use summaries instead of reading:** If a summary is sufficient, the agent skips the file read. If more detail is needed, the agent reads the file directly.
+
+**Why this saves tokens:** One Scout read → N agent reuses. Without compression, N agents each read the same files independently.
+
+## Shared Knowledge Base
+
+Agents share context across sessions via `.relentless/shared-context/`:
+- `project-map.md` — Scout writes codebase structure findings (read by all agents)
+- `conventions.md` — Detected coding patterns (read by all agents)
+- `decisions.jsonl` — Architectural decisions log (append-only, all agents)
+- `error-log.jsonl` — Errors + resolutions (append-only, all agents)
+
+**Protocol:** Scout writes project-map and conventions in Phase 3. All agents read before starting work. All agents append decisions and errors as they work. Context is cleared when a pursuit is archived.
 
 ## File Ownership
 

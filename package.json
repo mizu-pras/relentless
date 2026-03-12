@@ -5,7 +5,9 @@
   "description": "Autonomous multi-agent orchestration for OpenCode",
   "scripts": {
     "build": "tsc -p lib/tsconfig.json",
-    "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js"
+    "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js",
+    "test:only": "node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js",
+    "typecheck": "tsc -p lib/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.8.0",

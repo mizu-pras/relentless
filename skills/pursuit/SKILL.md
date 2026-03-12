@@ -23,7 +23,13 @@ If any criterion fails, the loop continues.
 ```
 Loop N (of max 10):
   1. Check .relentless/halt → if set: STOP, report state
-  2. Check token budget → if > 85% context used: compact first
+  2. Proactive budget forecast:
+     a. Read token_usage and context_limit from .relentless/current-pursuit.json (circuit_breaker field)
+     b. Estimate cost of upcoming dispatches:
+        - Per agent: ~300 (handoff) + ~500/file × files + ~200/call × 5 calls + ~800 (skill) + ~2000 (response)
+        - Total = sum of all agents to dispatch
+     c. If (token_usage + estimated_cost) / context_limit > 0.75: compact BEFORE dispatching
+     d. If > 0.85: STOP — too close to limit, report to user
   3. Identify all incomplete todos
   4. If none → check completion criteria:
      a. Run tests → if fail: create bug-fix todos

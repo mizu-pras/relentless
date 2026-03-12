@@ -45,6 +45,15 @@ Dispatch scout to understand the codebase:
 
 Use Scout's findings to refine file assignments in the plan.
 
+**Shared Context:** Scout should write its findings to the shared knowledge base so other agents can reuse them without re-scanning:
+- `writeMarkdownContext(dir, "project-map", findings)` — codebase structure and relevant files
+- `writeMarkdownContext(dir, "conventions", patterns)` — coding conventions detected
+- `writeSummary(dir, { file, summary, agent, timestamp })` — per-file summaries for handoff compression
+
+These live in `.relentless/shared-context/` and are readable by all agents.
+
+**File Summaries for Handoff Compression:** For each relevant file Scout reads, write a 1-2 sentence summary via `writeSummary()`. These summaries will be embedded in agent handoffs so agents don't need to re-read every file.
+
 ## Phase 4: File Ownership Assignment
 
 Before any parallel dispatch, pre-assign which files each agent may touch:
@@ -64,14 +73,28 @@ Every handoff MUST include:
 ```json
 {
   "task": "specific goal",
-  "context_files": ["relevant files"],
+  "context_summary": {
+    "src/relevant-file.ts": "1-2 sentence summary of what this file does"
+  },
   "assigned_files": ["files this agent may touch"],
   "constraints": ["Skip brainstorming — plan provided", "Only touch assigned_files", "Check .relentless/halt"],
   "expected_output": "deliverable description",
   "related_todos": ["T-XXX"],
-  "approach": "tdd"
+  "approach": "tdd",
+  "shared_context": "Read .relentless/shared-context/ for project-map, conventions, and prior decisions before starting"
 }
 ```
+
+**Handoff Compression:** Use `context_summary` instead of `context_files`:
+- Embed pre-digested file summaries (from Scout's `writeSummary()` or Conductor's own reading) directly in the handoff
+- Agents use summaries to understand context without re-reading files
+- If an agent needs more detail than the summary provides, it reads the file directly
+- This saves **10-30x tokens** vs. every agent independently reading the same files
+
+**Shared Context Protocol:** Agents should:
+- **Read** `.relentless/shared-context/project-map.md` and `conventions.md` before starting work (saves re-scanning)
+- **Append** architectural decisions via `appendDecision()` to `decisions.jsonl`
+- **Append** errors encountered via `appendError()` to `error-log.jsonl`
 
 ## Phase 6: Pursuit Loop
 
