@@ -397,12 +397,13 @@ Tercatat saat Sprint 2 selesai. Bisa dikerjakan di session berikutnya.
 
 ---
 
-## Sprint 3: Intelligence & Learning
+## Sprint 3: Intelligence & Learning ✅
 
 **Theme:** Make Relentless smarter over time — learn from history, share knowledge, optimize routing.
 **Estimated effort:** ~6-8 hours
 **Version target:** v0.1.3
 **Depends on:** Sprint 2 completed (needs metrics module + history data)
+**Status:** Complete — v0.1.3, committed as `a1c580f`
 
 ### 3.1 Smart Agent Selection (Learning-Based Routing)
 
@@ -502,6 +503,52 @@ Tercatat saat Sprint 2 selesai. Bisa dikerjakan di session berikutnya.
 - `/metrics` shows cost breakdown by agent and pursuit
 - `/status` shows current pursuit's running cost
 - Cost data persisted in archived pursuits for historical analysis
+
+---
+
+### Sprint 3 — Known Limitations & Follow-Up
+
+Tercatat saat Sprint 3 selesai. Bisa dikerjakan di session berikutnya.
+
+#### KL-S3-1: `promoteToGlobal()` belum dipanggil otomatis
+
+**Lokasi:** `lib/state.ts` — `archiveCompleted()`, `lib/lessons.ts` — `promoteToGlobal()`
+**Masalah:** `promoteToGlobal()` sudah dibuat dan tested, tapi `archiveCompleted()` tidak memanggilnya. Artinya lesson tidak pernah dipromosikan ke global store secara otomatis saat pursuit di-archive.
+**Dampak:** Global lessons store (`~/.config/opencode/relentless/global-lessons.jsonl`) tidak terisi otomatis. Fitur cross-project sharing efektif belum aktif end-to-end.
+**Solusi:** Tambahkan pemanggilan `promoteToGlobal(projectDir, projectId)` di `archiveCompleted()`, setelah `extractLessons()`. Perlu membaca config untuk cek `lessons.share_globally` dan menentukan `projectId` (bisa dari `basename(resolve(projectDir))` atau dari pursuit state).
+**Prioritas:** High — ini core feature Sprint 3.2 yang belum terwire.
+
+#### KL-S3-2: `updateActualCost()` belum dipanggil di production
+
+**Lokasi:** `lib/token-budget.ts` — `updateActualCost()`, `.opencode/plugins/relentless.ts`
+**Masalah:** `updateActualCost()` hanya dipanggil di test. Di plugin, `total_actual` di-set langsung dari `session.idle` event (snapshot total session token usage), bukan per-dispatch. Artinya field `actual_tokens` di setiap `DispatchRecord` selalu `undefined`.
+**Dampak:** Per-dispatch actual cost breakdown tidak tersedia. Hanya ada session-level total. `formatCostSummary()` tidak bisa menampilkan per-dispatch actual vs estimated comparison.
+**Solusi:** Untuk per-dispatch tracking, perlu mekanisme untuk mendeteksi berapa token yang digunakan oleh setiap agent dispatch secara individual. Ini kemungkinan membutuhkan hook di level subagent completion (belum tersedia di plugin SDK saat ini). Alternatif: estimasi dari rata-rata `total_actual / jumlah_dispatches`.
+**Prioritas:** Medium — session-level total sudah cukup untuk cost overview, per-dispatch adalah nice-to-have.
+
+#### KL-S3-3: Global lesson promotion belum cek "M=2 different projects"
+
+**Lokasi:** `lib/lessons.ts` — `promoteToGlobal()`, `hasSourceDiversity()`
+**Masalah:** Sprint plan menyebutkan criteria "frequency >= 3 AND appears in M=2 different projects". Implementasi menggunakan `hasSourceDiversity()` yang cek >= 2 **unique source files**, bukan >= 2 projects. Ini karena lesson disimpan per-project dan tidak punya field `source_projects`.
+**Dampak:** Lesson yang muncul 3x di satu project dengan 2 file berbeda sudah bisa dipromosikan — lebih lenient dari desain awal. Secara praktis ini acceptable karena frequency >= 3 sudah filter yang cukup ketat.
+**Solusi:** Tambahkan `source_projects: string[]` field ke `Lesson` interface. Di `promoteToGlobal()`, tag setiap lesson dengan `projectId`. Di `hasSourceDiversity()` atau filter baru, cek `source_projects.length >= 2` dari global store (bukan per-project check). Ini lebih akurat tapi membutuhkan refactor Lesson interface.
+**Prioritas:** Low — current behavior masih reasonable dan lebih practical.
+
+#### KL-S3-4: `recordDispatch()` auto-wiring bergantung pada todo naming convention
+
+**Lokasi:** `.opencode/plugins/relentless.ts` — `session.idle` handler, `AGENT_TO_CATEGORY` map
+**Masalah:** Auto-recording di plugin mendeteksi agent dari todo `content` field dan memakai `AGENT_TO_CATEGORY` reverse map untuk menentukan task category. Ini rapuh: kalau todo tidak menyebutkan nama agent di content-nya, atau format berubah, recording akan skip todo tersebut.
+**Dampak:** Tidak semua dispatch akan ter-record otomatis. Hanya yang todo-nya menyebutkan agent name (case-insensitive) di `content` field.
+**Solusi:** Tambahkan `assigned_agent` field eksplisit ke `PursuitTodo` interface di `state.ts`. Conductor mengisi field ini saat dispatch. Plugin membaca field ini langsung daripada parsing content string.
+**Prioritas:** Medium — akan mengurangi fragility dan meningkatkan recording accuracy.
+
+#### KL-S3-5: Token efficiency metric (cost-per-todo) dari Sprint 2 masih belum diimplementasi
+
+**Lokasi:** `lib/metrics.ts`
+**Masalah:** KL-S2-1 menyebutkan bahwa "token efficiency: estimated tokens per completed todo" belum dihitung. Sprint 3.3 menambahkan `CostMetrics` dan `token_tracking` ke pursuit state, tapi tidak menghitung cost-per-todo secara eksplisit.
+**Dampak:** `/metrics` menampilkan total cost dan per-agent breakdown, tapi tidak ada granularity per-todo.
+**Solusi:** Hitung `total_estimated / completed_todos_count` dari archived pursuits yang punya `token_tracking`. Tambahkan ke `CostMetrics` interface.
+**Prioritas:** Low — data sudah tersedia, hanya perlu kalkulasi tambahan.
 
 ---
 
