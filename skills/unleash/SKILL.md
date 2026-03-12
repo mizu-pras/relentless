@@ -1,6 +1,6 @@
 ---
 name: unleash
-description: Use when /unleash command is invoked. Orchestrates the full autonomous pipeline: intent analysis, planning, parallel dispatch, pursuit loop, final validation.
+description: "Use when /unleash command is invoked. Orchestrates the full autonomous pipeline: intent analysis, planning, parallel dispatch, pursuit loop, final validation."
 ---
 
 # Unleash — Full Orchestration
@@ -65,9 +65,12 @@ Before any parallel dispatch, pre-assign which files each agent may touch:
 OpenCode dispatches multiple Task tool calls in a single message **in parallel** (via `Promise.all`). To dispatch concurrently, include all Task tool calls in a single assistant response.
 
 Dispatch agents by category:
-- `deep` tasks → artisan (include handoff schema)
-- `visual` tasks → maestro (include handoff schema)
-- `reason` tasks → sentinel (include handoff schema)
+- `deep` tasks → artisan (include handoff schema) — artisan should load `relentless:test-driven-development`
+- `visual` tasks → maestro (include handoff schema) — maestro should load `relentless:ui-craft`
+- `reason` tasks → sentinel (include handoff schema) — sentinel should load `relentless:systematic-debugging`
+- `quick` tasks → scout (read-only, no skill loading required — scout is skill-free by design)
+
+**Agent skill loading:** Include the relevant skill name in the handoff constraints so agents load them explicitly, not by convention. Scout is exempt — it only reads, never writes.
 
 Every handoff MUST include:
 ```json

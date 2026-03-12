@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: writing-skills
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
 ---
 

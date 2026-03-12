@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: requesting-code-review
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 ---
 
@@ -51,10 +51,18 @@ Use Task tool with relentless:code-reviewer type, fill template at `code-reviewe
 - `{HEAD_SHA}` - Ending commit
 - `{DESCRIPTION}` - Brief summary
 
-**4. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
+**4. Act on feedback using `relentless:receiving-code-review`:**
+
+**REQUIRED:** When Sentinel returns findings, the receiving agent MUST invoke `relentless:receiving-code-review` to process the feedback properly. This ensures:
+- Technical evaluation over performative agreement
+- Proper severity triage (Critical → mandatory, Important → before proceeding, Advisory → backlog)
+- Reasoned pushback with evidence when findings are incorrect
+- One-at-a-time implementation with testing
+
+Severity handling:
+- Fix Critical issues immediately — no pushback allowed
+- Fix Important issues before proceeding — reasoned pushback allowed only with evidence
+- Note Advisory issues for later — implement if time permits
 - Treat Sentinel findings as authoritative in relentless pursuit flow
 
 ## Example
@@ -114,3 +122,15 @@ You: [Fix progress indicators]
 - Request clarification
 
 See template at: requesting-code-review/code-reviewer.md
+
+## Integration
+
+**Called by:**
+- **unleash** (Phase 7) — dispatches Sentinel for final review
+- Can be invoked ad-hoc during development
+
+**Chains to:**
+- **relentless:receiving-code-review** — REQUIRED: receiving agent must invoke this to process Sentinel findings
+
+**Called within:**
+- **pursuit loop** — when `review_cadence` is set (per-task, per-batch, or final-only)

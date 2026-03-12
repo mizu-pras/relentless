@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: finishing-a-development-branch
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
 ---
 
@@ -30,27 +30,37 @@ test -f .relentless/halt && echo "HALT present - stop immediately"
 
 If halt exists, stop and report status to Conductor.
 
-### Step 1: Verify Tests
+### Step 1: Verification Before Completion
 
-**Before presenting options, verify tests pass:**
+**REQUIRED SUB-SKILL:** Invoke `relentless:verification-before-completion` before presenting options.
+
+This is not just "run tests" — it is the full verification gate:
+
+1. **Run tests** — verify exit code 0
+2. **Run build** — if build step exists, verify exit code 0
+3. **Check documentation** — review dirty docs report, resolve or acknowledge
+4. **Requirements checklist** — re-read plan, verify each requirement is met line-by-line
+5. **Evidence before claims** — every claim must have fresh command output backing it
 
 ```bash
 # Run project's test suite
 npm test / cargo test / pytest / go test ./...
 ```
 
-**If tests fail:**
+**If verification fails (any step):**
 ```
-Tests failing (<N> failures). Must fix before completing:
+Verification failed:
+- Tests: [PASS/FAIL with evidence]
+- Build: [PASS/FAIL with evidence]  
+- Docs: [current/dirty with details]
+- Requirements: [met/gaps with specifics]
 
-[Show failures]
-
-Cannot proceed with merge/PR until tests pass.
+Cannot proceed until all verification passes.
 ```
 
 Stop. Don't proceed to Step 2.
 
-**If tests pass:** Continue to Step 2.
+**If all verification passes:** Continue to Step 2.
 
 ### Step 2: Determine Base Branch
 
@@ -208,11 +218,12 @@ git worktree remove <worktree-path>
 ## Integration
 
 **Called by:**
-- **subagent-driven-development** - relentless pursuit loop handles task execution and then invokes this completion flow
-- **executing-plans** - relentless pursuit loop handles batch execution and then invokes this completion flow
+- **unleash** (Phase 7) — after pursuit loop completes and verification passes
+- Pursuit loop handles task execution and then invokes this completion flow
 
-**Pairs with:**
-- **using-git-worktrees** - Cleans up worktree created by that skill
+**Required sub-skills:**
+- **relentless:verification-before-completion** — REQUIRED in Step 1 before presenting options
+- **using-git-worktrees** — Cleans up worktree created by that skill
 
 
 ### Step 6: Relentless Pursuit Cleanup

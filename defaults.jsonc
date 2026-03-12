@@ -43,5 +43,12 @@
       { "glob": "agents/**/*", "docs": ["agents/AGENTS.md", "README.md"] },
       { "glob": "commands/**/*", "docs": ["commands/AGENTS.md", "README.md"] }
     ]
+  },
+
+  // Agent learning system
+  "lessons": {
+    "enabled": true,
+    "max_lessons_in_context": 10,
+    "max_lessons_in_handoff": 5
   }
 }

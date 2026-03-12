@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, rmS
 import { join } from "path";
 import { readDirtyDocs, formatDirtyDocsReport } from "./doc-tracker.js";
 
+
 const SHARED_CONTEXT_DIR = ".relentless/shared-context";
 const PROJECT_MAP_FILE = "project-map.md";
 const CONVENTIONS_FILE = "conventions.md";

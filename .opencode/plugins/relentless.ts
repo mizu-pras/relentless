@@ -40,6 +40,17 @@ async function getSharedContext(): Promise<{
   };
 }
 
+async function getLessons(): Promise<{
+  readLessons: (dir?: string, maxEntries?: number) => any[];
+  formatLessonsForContext: (lessons: any[], maxLessons?: number) => string;
+}> {
+  const mod = (await import(join(PLUGIN_ROOT, "lib/dist/lessons.js"))) as any;
+  return {
+    readLessons: mod.readLessons,
+    formatLessonsForContext: mod.formatLessonsForContext,
+  };
+}
+
 async function getCompaction(): Promise<{
   readCompactionSnapshot: (dir?: string) => any;
   saveCompactionSnapshot: (dir: string | undefined, state: any, prev?: any) => any;
@@ -195,6 +206,18 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
         }
       } catch (e) {
         console.warn("[relentless] Failed to load state module, skipping conditional injection:", e);
+      }
+
+      // Inject learned lessons from past pursuits (persistent across sessions)
+      try {
+        const { readLessons, formatLessonsForContext } = await getLessons();
+        const lessons = readLessons(directory, 10);
+        const lessonsContext = formatLessonsForContext(lessons);
+        if (lessonsContext) {
+          parts.push(`<RELENTLESS_LESSONS>\n${lessonsContext}\n</RELENTLESS_LESSONS>`);
+        }
+      } catch (e) {
+        console.warn("[relentless] Failed to load lessons for system prompt:", e);
       }
 
       if (parts.length > 0) {

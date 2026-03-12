@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: receiving-code-review
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 ---
 
@@ -215,6 +215,25 @@ You understand 1,2,3,6. Unclear on 4,5.
 ## GitHub Thread Replies
 
 When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
+
+## Integration
+
+**Invoked after:**
+- **relentless:requesting-code-review** — REQUIRED: when Sentinel returns findings, the receiving agent must invoke this skill to process feedback
+- Any code review from external reviewers or human partners
+
+**Called by agents:**
+- **artisan** — after receiving Sentinel review of implementation
+- **maestro** — after receiving Sentinel review of UI work
+- Any agent that receives code review feedback during pursuit
+
+**Authority chain:**
+- Sentinel findings override artisan/maestro preferences
+- Critical findings: mandatory immediate fix, no pushback
+- Important findings: fix before proceeding, reasoned pushback allowed with evidence
+- Advisory findings: backlog, implement if time permits
+
+**Scope rule:** If review feedback requires touching files outside your `assigned_files`, STOP and report to Conductor. Do not modify unassigned files.
 
 ## The Bottom Line
 

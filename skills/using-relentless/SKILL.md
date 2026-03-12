@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: using-relentless
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Lightweight bootstrap for Relentless-enabled sessions
 ---
 

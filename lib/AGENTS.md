@@ -11,7 +11,8 @@
 - `token-budget.ts`: proactive token budget forecasting — cost estimation, dispatch forecasting, compaction recommendations
 - `circuit-breaker.ts`: runaway-loop protection (5-layer)
 - `compaction.ts`: differential compaction — tracks state changes between compactions and only injects deltas
-- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`)
+- `lessons.ts`: persistent agent learning system — extracts, categorizes, and stores lessons from resolved errors across pursuits
+- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `lessons.test.ts`)
 
 ## Commands
 - `npm run build` — compile via `tsc -p lib/tsconfig.json`
@@ -60,6 +61,17 @@
 - Snapshot stored in `.relentless/last-compaction.json`
 - Fallback: if compaction module fails, plugin uses a minimal inline format
 - Token savings: ~30-50% reduction on repeated compactions during long pursuits
+
+## Agent Learning System (Lessons)
+- Persistent storage at `.relentless/lessons.jsonl` — survives pursuit archive (NOT in shared-context/)
+- When a pursuit is archived, `archiveCompleted()` extracts lessons from `error-log.jsonl` before clearing
+- Only errors with resolutions become lessons; unresolved errors are ignored
+- Lessons are categorized: `type_error`, `import_error`, `config_error`, `test_failure`, `build_error`, `runtime_error`, `pattern`, `convention`, `other`
+- Error patterns are normalized (file paths, line numbers, quoted values stripped) for deduplication
+- Duplicate patterns merge: frequency increments, agents/examples accumulate, longer resolution wins
+- Lessons injected into: system prompt (via plugin), `formatSharedContext()`, and agent handoffs
+- `formatLessonsForHandoff()` filters lessons relevant to assigned files, falls back to top 3 general lessons
+- Configurable via `defaults.jsonc` under `lessons` key
 
 ## Implementation Conventions
 - Prefer lazy or dynamic imports where resilience is needed

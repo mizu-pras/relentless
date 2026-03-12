@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: systematic-debugging
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 ---
 

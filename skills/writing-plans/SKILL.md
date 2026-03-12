@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: writing-plans
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 ---
 

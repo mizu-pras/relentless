@@ -1,6 +1,6 @@
-<!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: test-driven-development
+source: Forked from superpowers by Jesse Vincent (MIT License)
 description: Use when implementing any feature or bugfix, before writing implementation code
 ---
 

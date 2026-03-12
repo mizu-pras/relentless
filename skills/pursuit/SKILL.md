@@ -7,6 +7,20 @@ description: Use to drive a task to 100% completion through a structured loop. R
 
 Do not stop until done. Do not declare victory until all criteria pass.
 
+## Review Cadence
+
+The pursuit loop supports configurable code review frequency via `review_cadence` in pursuit config:
+
+| Cadence | Behavior | Use When |
+|---------|----------|----------|
+| `per-task` | Dispatch Sentinel review after every completed task | High-risk changes, junior agents, critical systems |
+| `per-batch` | Dispatch Sentinel review every N completed tasks (default: 3) | Standard development, balanced rigor/speed |
+| `final-only` | Sentinel review only at completion (Phase 7) | Low-risk, well-tested, time-sensitive |
+
+**Default:** `per-batch` with batch size 3.
+
+When review finds Critical issues mid-pursuit, create fix todos immediately and continue the loop. Issues compound when left to the end.
+
 ## Completion Criteria
 
 ALL of the following must be true before a pursuit is complete:
@@ -14,7 +28,7 @@ ALL of the following must be true before a pursuit is complete:
 1. All todo items are `completed` (no `pending` or `in_progress` remaining)
 2. All tests pass — run the test suite and verify exit code 0
 3. Build succeeds — if a build step exists, verify exit code 0
-4. Sentinel review: no Critical findings outstanding
+4. Sentinel review: no Critical findings outstanding (final review always runs regardless of cadence)
 
 If any criterion fails, the loop continues.
 
@@ -40,6 +54,13 @@ Loop N (of max 10):
   6. Dispatch agents (respect file ownership)
   7. Wait for results
   8. Mark completed todos
+  8b. Review checkpoint (if review_cadence requires it):
+      - Count completed todos since last review
+      - If cadence=per-task: dispatch Sentinel review now
+      - If cadence=per-batch AND completed_since_review >= batch_size: dispatch Sentinel review
+      - If cadence=final-only: skip
+      - On Critical findings: create fix todos, continue loop
+      - Invoke `relentless:requesting-code-review` for dispatch, `relentless:receiving-code-review` for processing
   9. Check progress:
      - If at least 1 todo was completed: continue to next loop
      - If 0 todos completed (stall): check stall_limit

@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
-import { clearSharedContext } from "./shared-context.js";
+import { clearSharedContext, readErrors } from "./shared-context.js";
 import { clearCompactionSnapshot } from "./compaction.js";
+import { readLessons, writeLessons, extractLessons } from "./lessons.js";
 
 const STATE_DIR = ".relentless";
 const PURSUIT_FILE = "current-pursuit.json";
@@ -119,6 +120,17 @@ export function archiveCompleted(projectDir?: string): string | null {
 
   writeFileSync(archivePath, JSON.stringify(archived, null, 2), "utf8");
   unlinkSync(currentPath);
+  // Extract lessons from errors before clearing shared context
+  try {
+    const errors = readErrors(projectDir);
+    if (errors.length > 0) {
+      const existingLessons = readLessons(projectDir);
+      const mergedLessons = extractLessons(errors, existingLessons);
+      writeLessons(projectDir, mergedLessons);
+    }
+  } catch (e) {
+    console.warn("[relentless] Failed to extract lessons during archive:", e);
+  }
   try {
     clearSharedContext(projectDir);
   } catch (e) {
