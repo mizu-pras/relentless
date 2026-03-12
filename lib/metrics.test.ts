@@ -34,6 +34,17 @@ function writeLessons(projectDir: string, lessons: unknown[]): void {
   assert.strictEqual(metrics.errors.total_errors, 0, "should default errors to zero");
   assert.strictEqual(metrics.errors.resolved_count, 0, "should default resolved errors to zero");
   assert.deepStrictEqual(metrics.errors.top_categories, [], "should default top categories to empty");
+  assert.deepStrictEqual(
+    metrics.cost,
+    {
+      total_estimated: 0,
+      total_actual: 0,
+      avg_estimated_per_pursuit: 0,
+      avg_actual_per_pursuit: 0,
+      agent_costs: [],
+    },
+    "should default cost metrics to zero values"
+  );
   rmSync(testDir, { recursive: true, force: true });
   console.log("PASS: computeMetrics returns zero metrics when no history exists");
 }
@@ -65,6 +76,8 @@ function writeLessons(projectDir: string, lessons: unknown[]): void {
   assert.strictEqual(metrics.pursuit.total_todos, 5, "should count total todos");
   assert.strictEqual(metrics.pursuit.total_completed_todos, 3, "should count completed todos");
   assert.strictEqual(metrics.pursuit.avg_todos_per_pursuit, 2.5, "should compute average todos per pursuit");
+  assert.strictEqual(metrics.cost.total_estimated, 0, "missing token tracking should produce zero estimated costs");
+  assert.strictEqual(metrics.cost.total_actual, 0, "missing token tracking should produce zero actual costs");
   rmSync(testDir, { recursive: true, force: true });
   console.log("PASS: computeMetrics computes pursuit metrics from fixture archives");
 }
@@ -200,6 +213,7 @@ function writeLessons(projectDir: string, lessons: unknown[]): void {
   assert.ok(output.includes("## Pursuit Analytics"), "summary should include analytics header");
   assert.ok(output.includes("## Agent Performance"), "summary should include agent section");
   assert.ok(output.includes("## Error Patterns"), "summary should include error section");
+  assert.ok(output.includes("## Cost Tracking"), "summary should include cost tracking section");
   rmSync(testDir, { recursive: true, force: true });
   console.log("PASS: formatMetricsSummary returns human-readable output");
 }
@@ -220,6 +234,7 @@ function writeLessons(projectDir: string, lessons: unknown[]): void {
   assert.ok(output.includes("Pursuit Metrics"), "detailed output should include pursuit metrics section");
   assert.ok(output.includes("Agent Metrics"), "detailed output should include agent metrics section");
   assert.ok(output.includes("Error Metrics"), "detailed output should include error metrics section");
+  assert.ok(output.includes("Cost Metrics"), "detailed output should include cost metrics section");
   rmSync(testDir, { recursive: true, force: true });
   console.log("PASS: formatMetricsDetailed returns detailed breakdown");
 }
@@ -271,6 +286,69 @@ function writeLessons(projectDir: string, lessons: unknown[]): void {
   assert.strictEqual(metrics.pursuit.completed_pursuits, 1, "pursuit with non-array todos vacuously counts as completed");
   rmSync(testDir, { recursive: true, force: true });
   console.log("PASS: computeMetrics handles non-array todos field gracefully");
+}
+
+{
+  const testDir = makeTestDir("cost-metrics");
+  writeArchive(testDir, "2026-03-12-task-a.json", {
+    task: "task a",
+    todos: [{ id: "T-1", subject: "a", status: "completed", agent: "artisan" }],
+    token_tracking: {
+      dispatches: [
+        {
+          agent: "artisan",
+          task_id: "T-1",
+          estimated_tokens: 5000,
+          actual_tokens: 4800,
+          timestamp: "2026-03-12T10:00:00.000Z",
+        },
+        {
+          agent: "sentinel",
+          task_id: "T-2",
+          estimated_tokens: 3500,
+          actual_tokens: 4000,
+          timestamp: "2026-03-12T10:05:00.000Z",
+        },
+      ],
+      total_estimated: 8500,
+      total_actual: 8800,
+    },
+    archived_at: "2026-03-12T10:10:00.000Z",
+  });
+  writeArchive(testDir, "2026-03-13-task-b.json", {
+    task: "task b",
+    todos: [{ id: "T-3", subject: "b", status: "completed", agent: "artisan" }],
+    token_tracking: {
+      dispatches: [
+        {
+          agent: "artisan",
+          task_id: "T-3",
+          estimated_tokens: 2000,
+          actual_tokens: 2100,
+          timestamp: "2026-03-13T11:00:00.000Z",
+        },
+      ],
+      total_estimated: 2000,
+      total_actual: 2100,
+    },
+    archived_at: "2026-03-13T11:10:00.000Z",
+  });
+
+  const metrics = computeMetrics(testDir);
+  assert.strictEqual(metrics.cost.total_estimated, 10500, "should aggregate estimated tokens across archives");
+  assert.strictEqual(metrics.cost.total_actual, 10900, "should aggregate actual tokens across archives");
+  assert.strictEqual(metrics.cost.avg_estimated_per_pursuit, 5250, "should compute avg estimated cost per pursuit");
+  assert.strictEqual(metrics.cost.avg_actual_per_pursuit, 5450, "should compute avg actual cost per pursuit");
+  assert.deepStrictEqual(
+    metrics.cost.agent_costs,
+    [
+      { agent: "artisan", estimated: 7000, actual: 6900, dispatches: 2 },
+      { agent: "sentinel", estimated: 3500, actual: 4000, dispatches: 1 },
+    ],
+    "should aggregate per-agent dispatch costs across archives"
+  );
+  rmSync(testDir, { recursive: true, force: true });
+  console.log("PASS: computeMetrics aggregates token tracking cost metrics");
 }
 
 console.log("All metrics tests passed.");

@@ -8,12 +8,13 @@
 - `state.ts`: `.relentless/` state, halt management, and agent assignments
 - `shared-context.ts`: shared knowledge base for cross-agent context (project-map, conventions, decisions, errors, file-summaries, compression metrics)
 - `doc-tracker.ts`: documentation dirty-tracking — marks docs as needing update when source files change, tracks dirty/resolved status
-- `token-budget.ts`: proactive token budget forecasting — cost estimation, dispatch forecasting, compaction recommendations
+- `token-budget.ts`: proactive token budget forecasting — cost estimation, dispatch forecasting, compaction recommendations, cost tracking persistence
+- `routing.ts`: learning-based agent routing — records dispatch outcomes, computes routing suggestions from historical performance data
 - `circuit-breaker.ts`: runaway-loop protection (5-layer)
 - `compaction.ts`: differential compaction — tracks state changes between compactions and only injects deltas
 - `lessons.ts`: persistent agent learning system — extracts, categorizes, and stores lessons from resolved errors across pursuits
 - `metrics.ts`: pursuit analytics — computes metrics from archived pursuits and lessons (pursuit completion, agent performance, error patterns)
-- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`)
+- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`, `routing.test.ts`)
 
 ## Commands
 - `npm run build` — compile via `tsc -p lib/tsconfig.json`
@@ -42,6 +43,10 @@
 - Dual thresholds: `proactive_threshold` (0.75) triggers compaction recommendation, `token_budget_threshold` (0.85) is the hard stop
 - Cost model: handoff (300) + file reads (500/file) + tool calls (200/call) + skill loading (800) + response (2000)
 - Plugin persists `token_usage` and `context_limit` to pursuit state for conductor to read
+- Cost tracking: `DispatchRecord` and `TokenTracking` types persist per-dispatch estimated and actual token costs
+- `recordDispatchCost()` and `updateActualCost()` maintain running totals
+- `formatCostSummary()` renders per-agent cost breakdown
+- `PursuitState.token_tracking` persists cost data across session; archived for historical analysis
 
 ## Circuit Breaker Notes
 - Classifies known failure types (token limits, rate limits, etc.)
@@ -78,7 +83,7 @@
 - Persistent storage at `.relentless/lessons.jsonl` — survives pursuit archive (NOT in shared-context/)
 - When a pursuit is archived, `archiveCompleted()` extracts lessons from `error-log.jsonl` before clearing
 - Only errors with resolutions become lessons; unresolved errors are ignored
-- Lessons are categorized: `type_error`, `import_error`, `config_error`, `test_failure`, `build_error`, `runtime_error`, `pattern`, `convention`, `other`
+- Lessons are categorized: `type_error`, `import_error`, `config_error`, `test_failure`, `build_error`, `runtime_error`, `pattern`, `convention`, `agent_performance`, `other`
 - Framework gotchas: `framework_gotcha` category for recurring build/framework issues
 - `getGotchasForStack()` queries lessons relevant to a project's tech stack
 - Error patterns are normalized (file paths, line numbers, quoted values stripped) for deduplication
@@ -87,6 +92,25 @@
 - `formatLessonsForHandoff()` filters lessons relevant to assigned files, falls back to top 3 general lessons
 - Configurable via `defaults.jsonc` under `lessons` key
 
+## Global Lessons (Cross-Project Sharing)
+- Global store at `~/.config/opencode/relentless/global-lessons.jsonl`
+- `readGlobalLessons()` and `writeGlobalLessons()` — global JSONL I/O (optional `globalDir` param for testing)
+- `promoteToGlobal()` — promotes project lessons to global when frequency >= 3, skips `agent_performance` category
+- `mergeGlobalLessons()` — returns global lessons relevant to current project's tech stack
+- Opt-in via `lessons.share_globally: false` in config (default off)
+- Plugin injects global lessons under `<RELENTLESS_GLOBAL_LESSONS>` tag when sharing enabled
+- Existing project-local lesson behavior unchanged
+
+## Smart Agent Routing
+- `routing.ts` provides learning-based agent selection
+- Records dispatch outcomes as `agent_performance` lessons in lessons.jsonl
+- Pattern format: `agent_routing:<category>:<agent>` with success rate in resolution field
+- `getRoutingSuggestion()` returns static default unless learning enabled AND N>=5 data points show better agent
+- `getAllRoutingSuggestions()` covers all standard routing categories
+- `formatRoutingSuggestions()` only emits content when actual overrides exist (saves tokens)
+- Opt-in via `routing.learning_enabled: false` in config (default off)
+- Configurable threshold: `routing.min_data_points: 5`
+
 ## Implementation Conventions
 - Prefer lazy or dynamic imports where resilience is needed
 - Keep config/state helpers side-effect-light and deterministic
@@ -94,10 +118,11 @@
 
 ## Metrics (Pursuit Analytics)
 - Computes analytics from `.relentless/history/` archives and `.relentless/lessons.jsonl`
-- Metrics: pursuit completion rates, agent dispatch/success rates, error category patterns
-- Three interfaces: `PursuitMetrics`, `AgentMetrics`, `ErrorMetrics` composed into `FullMetrics`
-- Two formatters: `formatMetricsSummary()` (compact table), `formatMetricsDetailed()` (expanded sections)
-- Handles gracefully: no history, corrupted archives, missing lessons, todos without agent fields
+- Metrics: pursuit completion rates, agent dispatch/success rates, error category patterns, cost analytics
+- Four interfaces: `PursuitMetrics`, `AgentMetrics`, `ErrorMetrics`, `CostMetrics` composed into `FullMetrics`
+- Cost analytics: aggregates `token_tracking` from archived pursuits — total estimated/actual, per-agent breakdown, per-pursuit averages
+- Two formatters: `formatMetricsSummary()` (compact table), `formatMetricsDetailed()` (expanded sections) — both include cost sections
+- Handles gracefully: no history, corrupted archives, missing lessons, todos without agent fields, missing token_tracking
 
 ## Plugin Integration Tests
 - `.opencode/plugins/relentless.test.ts` — tests all plugin hooks with real state/lessons/compaction

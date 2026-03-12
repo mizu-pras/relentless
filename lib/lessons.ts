@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import { ErrorEntry } from "./shared-context.js";
 
 const STATE_DIR = ".relentless";
@@ -28,10 +29,19 @@ export type LessonCategory =
   | "runtime_error"
   | "pattern"
   | "convention"
+  | "agent_performance"
   | "other";
 
 function lessonsPath(projectDir?: string): string {
   return join(projectDir || ".", STATE_DIR, LESSONS_FILE);
+}
+
+function globalLessonsPath(): string {
+  return join(homedir(), ".config", "opencode", "relentless", "global-lessons.jsonl");
+}
+
+function resolveGlobalLessonsPath(globalDir?: string): string {
+  return globalDir ? join(globalDir, "global-lessons.jsonl") : globalLessonsPath();
 }
 
 function ensureStateDir(projectDir?: string): string {
@@ -40,6 +50,15 @@ function ensureStateDir(projectDir?: string): string {
     mkdirSync(dir, { recursive: true });
   }
   return dir;
+}
+
+function ensureParentDir(filePath: string): void {
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  const parent = parts.slice(0, -1).join("/");
+  if (!parent) return;
+  if (!existsSync(parent)) {
+    mkdirSync(parent, { recursive: true });
+  }
 }
 
 function normalizePath(filePath: string): string {
@@ -74,15 +93,7 @@ function normalizeExistingLesson(lesson: Lesson): Lesson {
   };
 }
 
-/**
- * Read lessons from persistent JSONL storage.
- *
- * @param projectDir - Project directory
- * @param maxEntries - Optional max number of latest entries to include
- * @returns Lessons sorted by frequency DESC, then last_seen DESC
- */
-export function readLessons(projectDir?: string, maxEntries?: number): Lesson[] {
-  const path = lessonsPath(projectDir);
+function readLessonsFromPath(path: string, maxEntries?: number): Lesson[] {
   if (!existsSync(path)) return [];
 
   try {
@@ -105,6 +116,43 @@ export function readLessons(projectDir?: string, maxEntries?: number): Lesson[] 
   }
 }
 
+function writeLessonsToPath(path: string, lessons: Lesson[]): void {
+  ensureParentDir(path);
+  if (lessons.length === 0) {
+    writeFileSync(path, "", "utf8");
+    return;
+  }
+
+  const normalized = sortLessons(lessons).map((lesson) => normalizeExistingLesson(lesson));
+  writeFileSync(path, normalized.map((entry) => JSON.stringify(entry)).join("\n") + "\n", "utf8");
+}
+
+function hasSourceDiversity(sourceFiles: string[]): boolean {
+  const uniqueFiles = Array.from(new Set(sourceFiles.map((file) => normalizePath(file)).filter(Boolean)));
+  return uniqueFiles.length >= 2;
+}
+
+function stackMatchesLesson(lesson: Lesson, stack: string[]): boolean {
+  return stack.some((entry) => {
+    const keyword = entry.toLowerCase();
+    return (
+      lesson.pattern.toLowerCase().includes(keyword) ||
+      lesson.examples.some((example) => typeof example === "string" && example.toLowerCase().includes(keyword))
+    );
+  });
+}
+
+/**
+ * Read lessons from persistent JSONL storage.
+ *
+ * @param projectDir - Project directory
+ * @param maxEntries - Optional max number of latest entries to include
+ * @returns Lessons sorted by frequency DESC, then last_seen DESC
+ */
+export function readLessons(projectDir?: string, maxEntries?: number): Lesson[] {
+  return readLessonsFromPath(lessonsPath(projectDir), maxEntries);
+}
+
 /**
  * Overwrite all lessons in persistent JSONL storage.
  *
@@ -113,14 +161,76 @@ export function readLessons(projectDir?: string, maxEntries?: number): Lesson[] 
  */
 export function writeLessons(projectDir: string | undefined, lessons: Lesson[]): void {
   ensureStateDir(projectDir);
-  const path = lessonsPath(projectDir);
-  if (lessons.length === 0) {
-    writeFileSync(path, "", "utf8");
-    return;
+  writeLessonsToPath(lessonsPath(projectDir), lessons);
+}
+
+export function readGlobalLessons(maxEntries?: number, globalDir?: string): Lesson[] {
+  return readLessonsFromPath(resolveGlobalLessonsPath(globalDir), maxEntries);
+}
+
+export function writeGlobalLessons(lessons: Lesson[], globalDir?: string): void {
+  writeLessonsToPath(resolveGlobalLessonsPath(globalDir), lessons);
+}
+
+export function promoteToGlobal(projectDir: string | undefined, projectId: string, globalDir?: string): number {
+  const projectLessons = readLessons(projectDir);
+  const candidates = projectLessons.filter(
+    (lesson) => lesson.category !== "agent_performance" && lesson.frequency >= 3 && hasSourceDiversity(lesson.source_files),
+  );
+  if (candidates.length === 0) return 0;
+
+  const globalLessons = readGlobalLessons(undefined, globalDir);
+  const merged = new Map<string, Lesson>();
+  for (const lesson of globalLessons) {
+    merged.set(lesson.id, normalizeExistingLesson(lesson));
   }
 
-  const normalized = sortLessons(lessons).map((lesson) => normalizeExistingLesson(lesson));
-  writeFileSync(path, normalized.map((entry) => JSON.stringify(entry)).join("\n") + "\n", "utf8");
+  for (const lesson of candidates) {
+    const projectTag = `[project:${projectId}]`;
+    const incoming = normalizeExistingLesson({
+      ...lesson,
+      examples: pushUniqueCapped(lesson.examples, projectTag, 3),
+    });
+
+    const existing = merged.get(lesson.id);
+    if (!existing) {
+      merged.set(lesson.id, incoming);
+      continue;
+    }
+
+    existing.frequency += incoming.frequency;
+    if (incoming.last_seen > existing.last_seen) {
+      existing.last_seen = incoming.last_seen;
+    }
+    if (incoming.first_seen < existing.first_seen) {
+      existing.first_seen = incoming.first_seen;
+    }
+    if (incoming.resolution.length > existing.resolution.length) {
+      existing.resolution = incoming.resolution;
+    }
+    for (const agent of incoming.agents) {
+      existing.agents = pushUniqueCapped(existing.agents, agent, 5);
+    }
+    for (const example of incoming.examples) {
+      existing.examples = pushUniqueCapped(existing.examples, example, 3);
+    }
+    for (const file of incoming.source_files) {
+      existing.source_files = pushUniqueCapped(existing.source_files, file, 5);
+    }
+  }
+
+  writeGlobalLessons(Array.from(merged.values()), globalDir);
+  return candidates.length;
+}
+
+export function mergeGlobalLessons(projectDir: string | undefined, stack?: string[], globalDir?: string): Lesson[] {
+  void projectDir;
+  const globalLessons = readGlobalLessons(undefined, globalDir);
+  return sortLessons(globalLessons.filter((lesson) => {
+    if (lesson.category === "agent_performance") return false;
+    if (!stack || stack.length === 0) return true;
+    return stackMatchesLesson(lesson, stack);
+  }));
 }
 
 /**
@@ -199,7 +309,7 @@ export function getGotchasForStack(projectDir: string | undefined, stack: string
       stack.some(
         (s) =>
           l.pattern.toLowerCase().includes(s.toLowerCase()) ||
-          l.examples.some((e) => e.toLowerCase().includes(s.toLowerCase())),
+          l.examples.some((e) => typeof e === "string" && e.toLowerCase().includes(s.toLowerCase())),
       ),
   );
 }

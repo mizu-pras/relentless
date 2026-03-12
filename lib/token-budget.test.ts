@@ -1,8 +1,12 @@
 import {
   TOKEN_COSTS,
+  createTokenTracking,
   estimateDispatchCost,
   forecastBudget,
+  formatCostSummary,
+  recordDispatchCost,
   shouldCompactBeforeDispatch,
+  updateActualCost,
 } from "./token-budget.js";
 import assert from "assert";
 
@@ -115,5 +119,80 @@ console.log("PASS: forecastBudget contextLimit=0 guard");
 const negativeLimit = forecastBudget(50000, -100, [{ fileReads: 1, toolCalls: 1, hasSkillLoading: false }]);
 assert.strictEqual(negativeLimit.shouldCompact, true, "negative contextLimit should always recommend compaction");
 console.log("PASS: forecastBudget negative contextLimit guard");
+
+// Test 12: createTokenTracking returns empty tracking state
+const emptyTracking = createTokenTracking();
+assert.deepStrictEqual(
+  emptyTracking,
+  {
+    dispatches: [],
+    total_estimated: 0,
+    total_actual: 0,
+  },
+  "createTokenTracking should initialize empty dispatch and zero totals"
+);
+console.log("PASS: createTokenTracking initializes empty state");
+
+// Test 13: recordDispatchCost adds dispatch record and estimate
+const recordedOnce = recordDispatchCost(
+  createTokenTracking(),
+  "artisan",
+  "T-003",
+  { fileReads: 2, toolCalls: 4, hasSkillLoading: true }
+);
+assert.strictEqual(recordedOnce.dispatches.length, 1, "recordDispatchCost should append one dispatch");
+assert.strictEqual(recordedOnce.dispatches[0].agent, "artisan", "dispatch record should include agent");
+assert.strictEqual(recordedOnce.dispatches[0].task_id, "T-003", "dispatch record should include task id");
+assert.strictEqual(
+  recordedOnce.dispatches[0].estimated_tokens,
+  estimateDispatchCost({ fileReads: 2, toolCalls: 4, hasSkillLoading: true }),
+  "dispatch record should store computed estimate"
+);
+assert.ok(
+  !Number.isNaN(Date.parse(recordedOnce.dispatches[0].timestamp)),
+  "dispatch record should include ISO timestamp"
+);
+console.log("PASS: recordDispatchCost appends dispatch records");
+
+// Test 14: recordDispatchCost accumulates total_estimated
+const recordedTwice = recordDispatchCost(
+  recordedOnce,
+  "sentinel",
+  "T-004",
+  { fileReads: 1, toolCalls: 1, hasSkillLoading: false }
+);
+const expectedEstimatedTotal =
+  estimateDispatchCost({ fileReads: 2, toolCalls: 4, hasSkillLoading: true }) +
+  estimateDispatchCost({ fileReads: 1, toolCalls: 1, hasSkillLoading: false });
+assert.strictEqual(
+  recordedTwice.total_estimated,
+  expectedEstimatedTotal,
+  "recordDispatchCost should keep running estimate total"
+);
+console.log("PASS: recordDispatchCost accumulates total_estimated");
+
+// Test 15: updateActualCost fills actual tokens for matching task id
+const withActual = updateActualCost(recordedTwice, "T-003", 4200);
+assert.strictEqual(withActual.dispatches[0].actual_tokens, 4200, "updateActualCost should set first matching missing actual");
+assert.strictEqual(withActual.dispatches[1].actual_tokens, undefined, "non-matching dispatch should be unchanged");
+console.log("PASS: updateActualCost updates matching dispatch");
+
+// Test 16: updateActualCost accumulates total_actual
+const withMoreActual = updateActualCost(withActual, "T-004", 1800);
+assert.strictEqual(withMoreActual.total_actual, 6000, "updateActualCost should accumulate total actual tokens");
+console.log("PASS: updateActualCost accumulates total_actual");
+
+// Test 17: formatCostSummary handles empty tracking
+assert.strictEqual(formatCostSummary(createTokenTracking()), "No dispatches recorded.", "empty tracking should show no dispatches message");
+console.log("PASS: formatCostSummary handles empty tracking");
+
+// Test 18: formatCostSummary formats per-agent breakdown
+const summary = formatCostSummary(withMoreActual);
+assert.ok(summary.includes("Total estimated:"), "summary should include total estimated line");
+assert.ok(summary.includes("Total actual:"), "summary should include total actual line");
+assert.ok(summary.includes("Per-agent:"), "summary should include per-agent section");
+assert.ok(summary.includes("artisan:"), "summary should include artisan breakdown");
+assert.ok(summary.includes("sentinel:"), "summary should include sentinel breakdown");
+console.log("PASS: formatCostSummary formats multi-agent breakdown");
 
 console.log("All token budget tests passed.");

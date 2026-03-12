@@ -2,6 +2,10 @@ import {
   readLessons,
   writeLessons,
   clearLessons,
+  readGlobalLessons,
+  writeGlobalLessons,
+  promoteToGlobal,
+  mergeGlobalLessons,
   categorizeError,
   normalizePattern,
   generateLessonId,
@@ -17,6 +21,7 @@ import { join } from "path";
 import assert from "assert";
 
 const TEST_DIR = "/tmp/relentless-lessons-test-" + Date.now();
+const GLOBAL_TEST_DIR = join(TEST_DIR, "global-store");
 mkdirSync(TEST_DIR, { recursive: true });
 
 function makeLesson(
@@ -86,6 +91,22 @@ assert.strictEqual(categorizeError("Anti-pattern detected: mutable global"), "pa
 assert.strictEqual(categorizeError("Some random error"), "other", "unknown errors should be other");
 assert.strictEqual(categorizeError("Unexpected failure", "lib/foo.test.ts"), "test_failure", "test files should influence categorization");
 console.log("PASS: categorizeError classifies known patterns and file hints");
+
+const agentPerfLesson = makeLesson(
+  "L-ap000001",
+  "agent_performance",
+  "agent_routing:deep:artisan",
+  "5/6",
+  6,
+  "",
+  "2026-03-12T05:00:00.000Z",
+);
+const agentPerfDir = join(TEST_DIR, "agent-perf");
+writeLessons(agentPerfDir, [agentPerfLesson]);
+const readBack = readLessons(agentPerfDir);
+assert.strictEqual(readBack.length, 1, "agent_performance lesson should persist");
+assert.strictEqual(readBack[0].category, "agent_performance", "category should be agent_performance");
+console.log("PASS: agent_performance category is valid and persists correctly");
 
 assert.strictEqual(
   normalizePattern("Type 'string' is not assignable to type 'number'"),
@@ -275,6 +296,163 @@ assert.strictEqual(gotchaMatches[0].category, "framework_gotcha", "returned less
 const gotchaMisses = getGotchasForStack(gotchaDir, ["svelte", "vue"]);
 assert.deepStrictEqual(gotchaMisses, [], "should return empty array when stack does not match gotcha");
 console.log("PASS: getGotchasForStack filters framework gotchas by stack");
+
+// --- Global Lessons Tests ---
+
+assert.deepStrictEqual(readGlobalLessons(undefined, GLOBAL_TEST_DIR), [], "readGlobalLessons should return empty array when file does not exist");
+console.log("PASS: readGlobalLessons returns empty array for nonexistent global storage");
+
+const globalLessonOne = makeLesson(
+  "L-global-01",
+  "framework_gotcha",
+  "Next route group missing layout",
+  "Add a layout.tsx in the route group",
+  4,
+  "app/(docs)/page.tsx",
+  "2026-03-12T06:01:00.000Z",
+);
+const globalLessonTwo = makeLesson(
+  "L-global-02",
+  "type_error",
+  "Type mismatch in shared utility",
+  "Narrow unions before assignment",
+  2,
+  "lib/shared.ts",
+  "2026-03-12T06:02:00.000Z",
+);
+writeGlobalLessons([globalLessonOne, globalLessonTwo], GLOBAL_TEST_DIR);
+const globalRoundTrip = readGlobalLessons(undefined, GLOBAL_TEST_DIR);
+assert.strictEqual(globalRoundTrip.length, 2, "writeGlobalLessons should persist entries");
+assert.strictEqual(globalRoundTrip[0].id, "L-global-01", "global lessons should be sorted by frequency DESC");
+console.log("PASS: writeGlobalLessons/readGlobalLessons round-trip");
+
+const promoteSourceDir = join(TEST_DIR, "promote-source");
+writeLessons(promoteSourceDir, [
+  {
+    id: "L-promote-01",
+    category: "framework_gotcha",
+    pattern: "Remix route action requires form method post",
+    resolution: "Set form method to post for route actions",
+    frequency: 3,
+    agents: ["artisan"],
+    examples: ["Action failed because method was GET"],
+    first_seen: "2026-03-12T07:00:00.000Z",
+    last_seen: "2026-03-12T07:10:00.000Z",
+    source_files: ["apps/web/routes/a.ts", "apps/web/routes/b.ts"],
+  },
+  {
+    id: "L-promote-02",
+    category: "type_error",
+    pattern: "Type mismatch in adapter boundary",
+    resolution: "Validate adapter payload before cast",
+    frequency: 2,
+    agents: ["sentinel"],
+    examples: ["Boundary mismatch in adapter"],
+    first_seen: "2026-03-12T07:00:00.000Z",
+    last_seen: "2026-03-12T07:05:00.000Z",
+    source_files: ["apps/api/adapter.ts", "apps/api/routes.ts"],
+  },
+]);
+const promotedCount = promoteToGlobal(promoteSourceDir, "proj-alpha", GLOBAL_TEST_DIR);
+assert.strictEqual(promotedCount, 1, "promoteToGlobal should promote only lessons meeting criteria");
+const afterPromote = readGlobalLessons(undefined, GLOBAL_TEST_DIR);
+assert.strictEqual(afterPromote.some((lesson) => lesson.id === "L-promote-01"), true, "qualifying lesson should be copied to global store");
+assert.strictEqual(
+  afterPromote.find((lesson) => lesson.id === "L-promote-01")?.examples.some((example) => example.includes("[project:proj-alpha]")),
+  true,
+  "promoted lessons should track source project in examples",
+);
+console.log("PASS: promoteToGlobal promotes only qualifying lessons");
+
+const promoteSkipDir = join(TEST_DIR, "promote-skip");
+writeLessons(promoteSkipDir, [
+  {
+    id: "L-promote-agent",
+    category: "agent_performance",
+    pattern: "agent_routing:reason:sentinel",
+    resolution: "7/8",
+    frequency: 8,
+    agents: ["conductor"],
+    examples: ["agent stats"],
+    first_seen: "2026-03-12T07:20:00.000Z",
+    last_seen: "2026-03-12T07:30:00.000Z",
+    source_files: ["dispatch.log", "metrics.log"],
+  },
+]);
+const promotedAgentCategory = promoteToGlobal(promoteSkipDir, "proj-beta", GLOBAL_TEST_DIR);
+assert.strictEqual(promotedAgentCategory, 0, "promoteToGlobal should skip agent_performance category");
+console.log("PASS: promoteToGlobal skips agent_performance lessons");
+
+const promoteMergeDir = join(TEST_DIR, "promote-merge");
+writeLessons(promoteMergeDir, [
+  {
+    id: "L-promote-01",
+    category: "framework_gotcha",
+    pattern: "Remix route action requires form method post",
+    resolution: "Set form method to post for route actions",
+    frequency: 4,
+    agents: ["sentinel"],
+    examples: ["Action failed from different service"],
+    first_seen: "2026-03-12T08:00:00.000Z",
+    last_seen: "2026-03-12T08:10:00.000Z",
+    source_files: ["apps/admin/routes/a.ts", "apps/admin/routes/b.ts"],
+  },
+]);
+const mergedPromotionCount = promoteToGlobal(promoteMergeDir, "proj-gamma", GLOBAL_TEST_DIR);
+assert.strictEqual(mergedPromotionCount, 1, "promoteToGlobal should count merged promotions");
+const mergedGlobal = readGlobalLessons(undefined, GLOBAL_TEST_DIR);
+const mergedEntry = mergedGlobal.find((lesson) => lesson.id === "L-promote-01");
+assert.ok(mergedEntry, "merged promoted lesson should exist");
+assert.strictEqual(mergedEntry.frequency >= 7, true, "merged promoted lesson should increment frequency");
+assert.strictEqual(mergedEntry.agents.includes("artisan"), true, "merged lesson should keep existing agents");
+assert.strictEqual(mergedEntry.agents.includes("sentinel"), true, "merged lesson should merge new agents");
+assert.strictEqual(
+  mergedEntry.examples.some((example) => example.includes("[project:proj-gamma]")),
+  true,
+  "merged lesson should include latest project tag",
+);
+console.log("PASS: promoteToGlobal merges into existing global lessons");
+
+writeGlobalLessons(
+  [
+    ...mergedGlobal,
+    {
+      id: "L-global-agent-skip",
+      category: "agent_performance",
+      pattern: "agent_routing:quick:scout",
+      resolution: "3/3",
+      frequency: 3,
+      agents: ["conductor"],
+      examples: ["router stats"],
+      first_seen: "2026-03-12T09:00:00.000Z",
+      last_seen: "2026-03-12T09:10:00.000Z",
+      source_files: ["metrics/dispatch.log"],
+    },
+    {
+      id: "L-global-stack-01",
+      category: "framework_gotcha",
+      pattern: "Next.js dynamic routes need generateStaticParams",
+      resolution: "Add generateStaticParams to dynamic segment",
+      frequency: 6,
+      agents: ["artisan"],
+      examples: ["next build failed on dynamic route"],
+      first_seen: "2026-03-12T09:00:00.000Z",
+      last_seen: "2026-03-12T09:12:00.000Z",
+      source_files: ["apps/next/app/blog/[slug]/page.tsx", "apps/next/app/blog/[slug]/layout.tsx"],
+    },
+  ],
+  GLOBAL_TEST_DIR,
+);
+
+const stackRelevant = mergeGlobalLessons(TEST_DIR, ["next"], GLOBAL_TEST_DIR);
+assert.strictEqual(stackRelevant.some((lesson) => lesson.id === "L-global-stack-01"), true, "mergeGlobalLessons should return stack-relevant global lessons");
+assert.strictEqual(stackRelevant.some((lesson) => lesson.id === "L-global-agent-skip"), false, "mergeGlobalLessons stack filter should skip unrelated global lessons");
+console.log("PASS: mergeGlobalLessons filters global lessons by stack");
+
+const allRelevant = mergeGlobalLessons(TEST_DIR, undefined, GLOBAL_TEST_DIR);
+assert.strictEqual(allRelevant.some((lesson) => lesson.id === "L-global-agent-skip"), false, "mergeGlobalLessons should exclude agent_performance without stack filter");
+assert.strictEqual(allRelevant.length > 0, true, "mergeGlobalLessons should return global lessons when available");
+console.log("PASS: mergeGlobalLessons returns all non-agent_performance lessons without stack");
 
 rmSync(TEST_DIR, { recursive: true });
 console.log("All lessons tests passed.");

@@ -3,6 +3,7 @@ import { join } from "path";
 import { clearSharedContext, readErrors } from "./shared-context.js";
 import { clearCompactionSnapshot } from "./compaction.js";
 import { readLessons, writeLessons, extractLessons } from "./lessons.js";
+import type { TokenTracking } from "./token-budget.js";
 
 const STATE_DIR = ".relentless";
 const PURSUIT_FILE = "current-pursuit.json";
@@ -28,6 +29,7 @@ export interface PursuitState {
   current_loop?: number;
   max_loops?: number;
   circuit_breaker?: CircuitBreakerStatus;
+  token_tracking?: TokenTracking;
   config?: {
     circuit_breaker?: {
       max_consecutive_failures?: number;

@@ -117,11 +117,21 @@ If dispatching artisan fails:
 
 ## Category Routing
 
+Default static routing:
 - `deep` → artisan (backend, logic, implementation)
 - `visual` → maestro (UI-primary tasks only)
 - `quick` → scout (read-only recon)
 - `reason` → sentinel (debugging, architecture)
 - When visual + logic mixed → artisan (load relentless:ui-craft skill)
+
+### Smart Routing (Learning-Based)
+
+When `routing.learning_enabled` is true in config:
+1. Before dispatching, call `getRoutingSuggestion(projectDir, category, config)` from `lib/routing.ts`
+2. If the suggestion differs from the default agent AND has sufficient confidence, use the suggested agent
+3. After dispatch completes, call `recordDispatch()` to record the outcome for future learning
+4. Routing suggestions appear after N=5 data points for the same category
+5. Conductor can accept or override routing suggestions
 
 ## Halt Awareness
 

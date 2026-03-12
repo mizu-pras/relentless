@@ -49,7 +49,14 @@
   "lessons": {
     "enabled": true,
     "max_lessons_in_context": 10,
-    "max_lessons_in_handoff": 5
+    "max_lessons_in_handoff": 5,
+    "share_globally": false      // Opt-in: promote lessons to global store
+  },
+
+  // Smart agent routing (learning-based)
+  "routing": {
+    "learning_enabled": false,    // Opt-in: learn from dispatch history
+    "min_data_points": 5          // Minimum data points before suggesting override
   },
 
   // Time budget allocation targets

@@ -42,12 +42,23 @@ async function getSharedContext(): Promise<{
 
 async function getLessons(): Promise<{
   readLessons: (dir?: string, maxEntries?: number) => any[];
+  readGlobalLessons: (maxEntries?: number) => any[];
   formatLessonsForContext: (lessons: any[], maxLessons?: number) => string;
 }> {
   const mod = (await import(join(PLUGIN_ROOT, "lib/dist/lessons.js"))) as any;
   return {
     readLessons: mod.readLessons,
+    readGlobalLessons: mod.readGlobalLessons,
     formatLessonsForContext: mod.formatLessonsForContext,
+  };
+}
+
+async function getRouting(): Promise<{
+  recordDispatch: (dir: string | undefined, record: any) => void;
+}> {
+  const mod = (await import(join(PLUGIN_ROOT, "lib/dist/routing.js"))) as any;
+  return {
+    recordDispatch: mod.recordDispatch,
   };
 }
 
@@ -108,6 +119,17 @@ function readAgentModel(agentName: string): string {
 const circuitBreakers = new Map<string, any>();
 const sessionTokenUsage = new Map<string, number>();
 const sessionContextLimits = new Map<string, number>();
+// Track which todos have been recorded as dispatch outcomes to avoid duplicates.
+const recordedTodos = new Map<string, Set<string>>();
+
+// Reverse mapping: agent name → task category for routing records.
+const AGENT_TO_CATEGORY: Record<string, string> = {
+  artisan: "deep",
+  maestro: "visual",
+  sentinel: "reason",
+  scout: "quick",
+  conductor: "orchestrate",
+};
 
 const RelentlessPlugin: Plugin = async ({ client, directory }) => {
   const configuredConductorModel = readAgentModel("conductor");
@@ -220,6 +242,25 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
         console.warn("[relentless] Failed to load lessons for system prompt:", e);
       }
 
+      // Inject global lessons (if sharing enabled in config)
+      try {
+        const config = await getConfig(directory);
+        if (config?.lessons?.share_globally) {
+          const { readGlobalLessons, formatLessonsForContext } = await getLessons();
+          const globalLessons = readGlobalLessons(5);
+          const globalContext = formatLessonsForContext(globalLessons, 5);
+          if (globalContext) {
+            const relabeled = globalContext.replace(
+              "## Learned Lessons (from previous pursuits)",
+              "## Global Lessons (cross-project patterns)",
+            );
+            parts.push(`<RELENTLESS_GLOBAL_LESSONS>\n${relabeled}\n</RELENTLESS_GLOBAL_LESSONS>`);
+          }
+        }
+      } catch (e) {
+        console.warn("[relentless] Failed to load global lessons:", e);
+      }
+
       if (parts.length > 0) {
         (output.system ||= []).push(parts.join("\n\n"));
       }
@@ -312,8 +353,54 @@ IMPORTANT: Continue the pursuit. Do not restart.`;
                   token_usage: sessionTokenUsage.get(sessionID) || 0,
                   context_limit: sessionContextLimits.get(sessionID) || 200000,
                 };
-                writePursuitState(directory, state);
               }
+
+              // Persist session-level token usage as total_actual snapshot.
+              // Note: this is a session-level cumulative counter, not a per-dispatch sum.
+              // See TokenTracking JSDoc in token-budget.ts for details.
+              if (!state.token_tracking) {
+                state.token_tracking = { dispatches: [], total_estimated: 0, total_actual: 0 };
+              }
+              state.token_tracking.total_actual = sessionTokenUsage.get(sessionID) || 0;
+
+              // Auto-record dispatch outcomes for learning-based routing.
+              // Detects newly completed/cancelled todos with agent assignments
+              // and records them via recordDispatch() for future routing decisions.
+              try {
+                const config = await getConfig(directory);
+                if (config?.routing?.learning_enabled) {
+                  if (!recordedTodos.has(sessionID)) {
+                    recordedTodos.set(sessionID, new Set());
+                  }
+                  const seen = recordedTodos.get(sessionID)!;
+                  const todos: any[] = Array.isArray(state.todos) ? state.todos : [];
+                  const newlyFinished = todos.filter(
+                    (t: any) =>
+                      t.agent &&
+                      (t.status === "completed" || t.status === "cancelled") &&
+                      !seen.has(t.id),
+                  );
+                  if (newlyFinished.length > 0) {
+                    const { recordDispatch } = await getRouting();
+                    for (const todo of newlyFinished) {
+                      const category = AGENT_TO_CATEGORY[todo.agent] || "deep";
+                      recordDispatch(directory, {
+                        agent: todo.agent,
+                        task_category: category,
+                        success: todo.status === "completed",
+                        retry_count: 0,
+                        estimated_tokens: 0,
+                        timestamp: new Date().toISOString(),
+                      });
+                      seen.add(todo.id);
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn("[relentless] Failed to record dispatch outcomes:", e);
+              }
+
+              writePursuitState(directory, state);
             }
           } catch (e) {
             console.warn("[relentless] Failed to sync pursuit state:", e);

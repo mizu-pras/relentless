@@ -43,6 +43,120 @@ export interface BudgetForecast {
   summary: string;
 }
 
+/** Record of a single agent dispatch's token cost. */
+export interface DispatchRecord {
+  agent: string;
+  task_id: string;
+  estimated_tokens: number;
+  actual_tokens?: number;
+  timestamp: string;
+}
+
+/**
+ * Token tracking state persisted in PursuitState.
+ *
+ * Note: `total_actual` has two sources:
+ * - The plugin sets it to the cumulative session token usage (session-level snapshot)
+ * - `updateActualCost()` adds per-dispatch actual costs (dispatch-level sum)
+ * Currently only the plugin writes this field. If `updateActualCost()` is used in the
+ * future, ensure the plugin's session-level write does not overwrite dispatch-level sums.
+ */
+export interface TokenTracking {
+  dispatches: DispatchRecord[];
+  total_estimated: number;
+  total_actual: number;
+}
+
+/**
+ * Create a new empty token tracking state.
+ */
+export function createTokenTracking(): TokenTracking {
+  return {
+    dispatches: [],
+    total_estimated: 0,
+    total_actual: 0,
+  };
+}
+
+/**
+ * Record a dispatch's estimated cost.
+ */
+export function recordDispatchCost(
+  tracking: TokenTracking,
+  agent: string,
+  taskId: string,
+  estimate: DispatchEstimate,
+): TokenTracking {
+  const estimated = estimateDispatchCost(estimate);
+  return {
+    dispatches: [
+      ...tracking.dispatches,
+      {
+        agent,
+        task_id: taskId,
+        estimated_tokens: estimated,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+    total_estimated: tracking.total_estimated + estimated,
+    total_actual: tracking.total_actual,
+  };
+}
+
+/**
+ * Update a dispatch record with actual token usage.
+ */
+export function updateActualCost(
+  tracking: TokenTracking,
+  taskId: string,
+  actualTokens: number,
+): TokenTracking {
+  const dispatches = tracking.dispatches.map((dispatch) => {
+    if (dispatch.task_id === taskId && dispatch.actual_tokens === undefined) {
+      return { ...dispatch, actual_tokens: actualTokens };
+    }
+    return dispatch;
+  });
+  return {
+    dispatches,
+    total_estimated: tracking.total_estimated,
+    total_actual: tracking.total_actual + actualTokens,
+  };
+}
+
+/**
+ * Format a cost summary for display.
+ */
+export function formatCostSummary(tracking: TokenTracking): string {
+  if (tracking.dispatches.length === 0) {
+    return "No dispatches recorded.";
+  }
+
+  const lines: string[] = [];
+  lines.push(`Total estimated: ${tracking.total_estimated.toLocaleString()} tokens`);
+  lines.push(`Total actual: ${tracking.total_actual.toLocaleString()} tokens`);
+  lines.push(`Dispatches: ${tracking.dispatches.length}`);
+
+  const agentCosts = new Map<string, { estimated: number; actual: number; count: number }>();
+  for (const dispatch of tracking.dispatches) {
+    const existing = agentCosts.get(dispatch.agent) || { estimated: 0, actual: 0, count: 0 };
+    existing.estimated += dispatch.estimated_tokens;
+    existing.actual += dispatch.actual_tokens || 0;
+    existing.count += 1;
+    agentCosts.set(dispatch.agent, existing);
+  }
+
+  lines.push("");
+  lines.push("Per-agent:");
+  for (const [agent, costs] of Array.from(agentCosts.entries()).sort((a, b) => b[1].estimated - a[1].estimated)) {
+    lines.push(
+      `  ${agent}: ${costs.count} dispatches, ~${costs.estimated.toLocaleString()} est, ${costs.actual.toLocaleString()} actual`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 /**
  * Estimate the token cost of a single agent dispatch.
  */

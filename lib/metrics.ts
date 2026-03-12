@@ -9,6 +9,15 @@ interface ArchivedTodo {
 
 interface ArchivedPursuit {
   todos?: ArchivedTodo[];
+  token_tracking?: {
+    dispatches?: Array<{
+      agent?: string;
+      estimated_tokens?: number;
+      actual_tokens?: number;
+    }>;
+    total_estimated?: number;
+    total_actual?: number;
+  };
 }
 
 export interface PursuitMetrics {
@@ -33,10 +42,19 @@ export interface ErrorMetrics {
   top_categories: Array<{ category: string; count: number }>;
 }
 
+export interface CostMetrics {
+  total_estimated: number;
+  total_actual: number;
+  avg_estimated_per_pursuit: number;
+  avg_actual_per_pursuit: number;
+  agent_costs: Array<{ agent: string; estimated: number; actual: number; dispatches: number }>;
+}
+
 export interface FullMetrics {
   pursuit: PursuitMetrics;
   agents: AgentMetrics[];
   errors: ErrorMetrics;
+  cost: CostMetrics;
   generated_at: string;
 }
 
@@ -79,6 +97,9 @@ export function computeMetrics(projectDir?: string): FullMetrics {
   let totalTodos = 0;
   let totalCompletedTodos = 0;
   const agentCounts = new Map<string, { dispatch_count: number; completed_count: number }>();
+  let totalEstimated = 0;
+  let totalActual = 0;
+  const agentCosts = new Map<string, { estimated: number; actual: number; dispatches: number }>();
 
   for (const pursuit of pursuits) {
     const todos = Array.isArray(pursuit.todos) ? pursuit.todos : [];
@@ -103,6 +124,24 @@ export function computeMetrics(projectDir?: string): FullMetrics {
 
     if (allCompleted) {
       completedPursuits += 1;
+    }
+
+    const tracking = pursuit.token_tracking;
+    if (!tracking || typeof tracking !== "object") {
+      continue;
+    }
+
+    totalEstimated += typeof tracking.total_estimated === "number" ? tracking.total_estimated : 0;
+    totalActual += typeof tracking.total_actual === "number" ? tracking.total_actual : 0;
+
+    const dispatches = Array.isArray(tracking.dispatches) ? tracking.dispatches : [];
+    for (const dispatch of dispatches) {
+      if (!dispatch.agent) continue;
+      const existing = agentCosts.get(dispatch.agent) || { estimated: 0, actual: 0, dispatches: 0 };
+      existing.estimated += typeof dispatch.estimated_tokens === "number" ? dispatch.estimated_tokens : 0;
+      existing.actual += typeof dispatch.actual_tokens === "number" ? dispatch.actual_tokens : 0;
+      existing.dispatches += 1;
+      agentCosts.set(dispatch.agent, existing);
     }
   }
 
@@ -136,6 +175,24 @@ export function computeMetrics(projectDir?: string): FullMetrics {
       return a.category.localeCompare(b.category);
     });
 
+  const cost: CostMetrics = {
+    total_estimated: totalEstimated,
+    total_actual: totalActual,
+    avg_estimated_per_pursuit: pursuits.length === 0 ? 0 : Number((totalEstimated / pursuits.length).toFixed(1)),
+    avg_actual_per_pursuit: pursuits.length === 0 ? 0 : Number((totalActual / pursuits.length).toFixed(1)),
+    agent_costs: Array.from(agentCosts.entries())
+      .map(([agent, values]) => ({
+        agent,
+        estimated: values.estimated,
+        actual: values.actual,
+        dispatches: values.dispatches,
+      }))
+      .sort((a, b) => {
+        if (b.estimated !== a.estimated) return b.estimated - a.estimated;
+        return a.agent.localeCompare(b.agent);
+      }),
+  };
+
   const pursuit: PursuitMetrics = {
     total_pursuits: pursuits.length,
     completed_pursuits: completedPursuits,
@@ -153,6 +210,7 @@ export function computeMetrics(projectDir?: string): FullMetrics {
       resolved_count: resolvedCount,
       top_categories: topCategories,
     },
+    cost,
     generated_at: new Date().toISOString(),
   };
 }
@@ -190,6 +248,24 @@ export function formatMetricsSummary(metrics: FullMetrics): string {
       `Top: ${metrics.errors.top_categories
         .slice(0, 5)
         .map((entry) => `${entry.category} (${entry.count})`)
+        .join(", ")}`,
+    );
+  }
+  lines.push("");
+  lines.push("## Cost Tracking");
+  lines.push(
+    `Tokens: ${metrics.cost.total_estimated.toLocaleString()} estimated, ${metrics.cost.total_actual.toLocaleString()} actual`,
+  );
+  lines.push(
+    `Avg per pursuit: ${metrics.cost.avg_estimated_per_pursuit.toLocaleString()} estimated, ${metrics.cost.avg_actual_per_pursuit.toLocaleString()} actual`,
+  );
+  if (metrics.cost.agent_costs.length === 0) {
+    lines.push("Top agents: none");
+  } else {
+    lines.push(
+      `Top agents: ${metrics.cost.agent_costs
+        .slice(0, 5)
+        .map((entry) => `${entry.agent} (${entry.dispatches}, ~${entry.estimated.toLocaleString()} est, ${entry.actual.toLocaleString()} act)`)
         .join(", ")}`,
     );
   }
@@ -233,6 +309,21 @@ export function formatMetricsDetailed(metrics: FullMetrics): string {
         .map((entry) => `${entry.category} (${entry.count})`)
         .join(", ")}`,
     );
+  }
+  lines.push("");
+  lines.push("### Cost Metrics");
+  lines.push(`- Total estimated tokens: ${metrics.cost.total_estimated.toLocaleString()}`);
+  lines.push(`- Total actual tokens: ${metrics.cost.total_actual.toLocaleString()}`);
+  lines.push(`- Avg estimated per pursuit: ${metrics.cost.avg_estimated_per_pursuit.toLocaleString()}`);
+  lines.push(`- Avg actual per pursuit: ${metrics.cost.avg_actual_per_pursuit.toLocaleString()}`);
+  if (metrics.cost.agent_costs.length === 0) {
+    lines.push("- Per-agent costs: none");
+  } else {
+    for (const costEntry of metrics.cost.agent_costs) {
+      lines.push(
+        `- ${costEntry.agent}: ${costEntry.dispatches} dispatches, ~${costEntry.estimated.toLocaleString()} estimated, ${costEntry.actual.toLocaleString()} actual`,
+      );
+    }
   }
   return lines.join("\n");
 }

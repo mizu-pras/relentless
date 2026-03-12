@@ -152,6 +152,16 @@ After parallel tracks complete, sequential work handles tasks that depend on bot
 
 OpenCode dispatches multiple Task tool calls in a single message **in parallel** (via `Promise.all`). To dispatch concurrently, include all Task tool calls in a single assistant response.
 
+### Smart Routing (Learning-Based)
+
+Before dispatching, check if learning-based routing is enabled (`config.routing.learning_enabled`):
+1. Call `getRoutingSuggestion(projectDir, category, config)` from `lib/routing.ts`
+2. If the suggestion differs from the default AND has sufficient confidence, consider using the suggested agent
+3. Conductor can accept or override suggestions — Conductor is the final authority
+4. After each dispatch completes, call `recordDispatch()` to record the outcome
+
+If learning is disabled (default), use static category routing:
+
 Dispatch agents by category:
 - `deep` tasks → artisan (include handoff schema) — artisan should load `relentless:test-driven-development`
 - `visual` tasks → maestro (include handoff schema) — maestro should load `relentless:ui-craft`
