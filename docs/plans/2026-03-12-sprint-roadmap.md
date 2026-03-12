@@ -205,12 +205,13 @@ Tercatat saat Sprint 1 selesai. Bisa dikerjakan di session berikutnya.
 
 ---
 
-## Sprint 2: Reliability & Observability
+## Sprint 2: Reliability & Observability ✅
 
 **Theme:** Strengthen the runtime with tests, health checks, and recovery mechanisms.
 **Estimated effort:** ~5-6 hours
 **Version target:** v0.1.2
 **Depends on:** Sprint 1 completed
+**Status:** Completed — commit `f0258c8`
 
 ### 2.1 Plugin Integration Tests
 
@@ -347,6 +348,52 @@ Tercatat saat Sprint 1 selesai. Bisa dikerjakan di session berikutnya.
 - Broken symlinks are identified with fix suggestions
 - Corrupted state files are identified
 - Self-repair available for common issues (missing symlinks, stale build)
+
+---
+
+### Sprint 2 — Known Limitations & Follow-Up
+
+Tercatat saat Sprint 2 selesai. Bisa dikerjakan di session berikutnya.
+
+#### KL-S2-1: Token efficiency metric belum diimplementasi
+
+**Lokasi:** `lib/metrics.ts`
+**Masalah:** Bagian "What to do" di plan menyebutkan "Token efficiency: estimated tokens per completed todo" sebagai salah satu metrik yang harus dihitung. Metrik ini belum diimplementasi di `computeMetrics()`.
+**Dampak:** `/metrics` tidak menampilkan cost-per-todo. Namun ini TIDAK ada di acceptance criteria — hanya di deskripsi "What to do".
+**Solusi:** Tambahkan field `token_efficiency` ke `FullMetrics`. Hitung dari `token_tracking` di archived pursuit state (perlu Sprint 3 item 3.3 Cost Tracking yang menambahkan `token_tracking` ke pursuit state).
+**Prioritas:** Low — akan terselesaikan secara natural oleh Sprint 3 item 3.3.
+
+#### KL-S2-2: Time patterns metric belum diimplementasi
+
+**Lokasi:** `lib/metrics.ts`
+**Masalah:** Bagian "What to do" menyebutkan "Time patterns: average pursuit duration (from timestamps)" sebagai metrik yang harus dihitung. Belum diimplementasi.
+**Dampak:** `/metrics` tidak menampilkan durasi rata-rata pursuit. TIDAK ada di acceptance criteria.
+**Solusi:** Hitung dari `updated_at` (atau `created_at` jika ditambahkan) vs `archived_at` di archived pursuit JSON. Bisa dikerjakan standalone tanpa dependency Sprint 3.
+**Prioritas:** Low
+
+#### KL-S2-3: Plugin test coverage belum diukur secara formal
+
+**Lokasi:** `.opencode/plugins/relentless.test.ts`
+**Masalah:** Acceptance criteria menyebutkan ">90% line coverage on plugin entrypoint". Semua hooks dan edge cases sudah ditest (10 test cases), tapi tidak ada coverage tool (c8/istanbul) yang terkonfigurasi untuk membuktikan angka persis.
+**Dampak:** Klaim coverage berdasarkan analisis manual, bukan tool output. Secara praktis semua path penting ter-cover.
+**Solusi:** Tambahkan `c8` sebagai devDependency dan buat script `test:coverage` yang menjalankan plugin tests dengan coverage report. Contoh: `"test:coverage": "c8 node .opencode/dist/relentless.test.js"`
+**Prioritas:** Low
+
+#### KL-S2-4: Recovery skill belum ada runtime code (hanya instruksi markdown)
+
+**Lokasi:** `skills/recovery/SKILL.md`, `commands/recover.md`
+**Masalah:** Recovery skill adalah instruksi markdown yang akan diikuti oleh agent saat dipanggil. Tidak ada `lib/recovery.ts` runtime module — semua logic dijalankan langsung oleh agent menggunakan tools (fs read/write, git commands). Ini konsisten dengan bagaimana skills lain (history, health) bekerja di Relentless, tapi berarti tidak ada unit-testable code untuk recovery.
+**Dampak:** Tidak bisa unit-test recovery flow. Hanya bisa ditest secara end-to-end saat agent menjalankan `/recover`.
+**Solusi:** Jika diinginkan testability, extract core logic (state cleanup, archive-before-delete, git commit finder) ke `lib/recovery.ts` dengan unit tests. Tapi ini bukan requirement di sprint plan.
+**Prioritas:** Low — arsitektur konsisten dengan desain skill-based yang ada.
+
+#### KL-S2-5: Health skill belum ada runtime code (hanya instruksi markdown)
+
+**Lokasi:** `skills/health/SKILL.md`, `commands/health.md`
+**Masalah:** Sama seperti KL-S2-4 — health check adalah instruksi markdown tanpa runtime module.
+**Dampak:** Sama — tidak unit-testable. Agent menjalankan checks secara langsung.
+**Solusi:** Sama — extract ke `lib/health.ts` jika testability diinginkan. Bisa jadi kandidat Sprint 4 item 4.2 (CI/CD headless mode) yang membutuhkan `npx relentless health --headless`.
+**Prioritas:** Medium — akan dibutuhkan oleh Sprint 4.2.
 
 ---
 
