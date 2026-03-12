@@ -19,4 +19,5 @@
 - `--audit`: evaluate AGENTS.md quality
 - `--improve`: propose targeted AGENTS.md improvements
 - `--update`: refresh AGENTS.md after project changes
+- `--dirty`: update only AGENTS.md files marked dirty by doc-tracker
 - `--max-depth=N`: cap scan depth for discovery

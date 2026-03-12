@@ -7,6 +7,7 @@
 - `config.ts`: JSONC config loading and merge order
 - `state.ts`: `.relentless/` state, halt management, and agent assignments
 - `shared-context.ts`: shared knowledge base for cross-agent context (project-map, conventions, decisions, errors, file-summaries)
+- `doc-tracker.ts`: documentation dirty-tracking — marks docs as needing update when source files change, tracks dirty/resolved status
 - `token-budget.ts`: proactive token budget forecasting — cost estimation, dispatch forecasting, compaction recommendations
 - `circuit-breaker.ts`: runaway-loop protection (5-layer)
 - `compaction.ts`: differential compaction — tracks state changes between compactions and only injects deltas
@@ -44,6 +45,14 @@
 - Auto-cleared when pursuit is archived via `archiveCompleted()`
 - Included in session compaction via `formatSharedContext()`
 - File summaries formatted for handoffs via `formatSummariesForHandoff()`
+
+## Documentation Dirty Tracking
+- Tracks which documentation files need updating after code changes
+- JSONL storage at `.relentless/shared-context/doc-dirty.jsonl`
+- Convention-based: when `lib/*.ts` changes -> `lib/AGENTS.md` and `README.md` are marked dirty
+- Configurable patterns in `defaults.jsonc` under `doc_tracker.patterns`
+- Integrated into `formatSharedContext()` — agents see dirty docs in their context
+- Used by verification-before-completion skill to check docs before claiming done
 
 ## Differential Compaction
 - First compaction: full state dump (task, all todos, circuit breaker)

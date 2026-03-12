@@ -1,5 +1,5 @@
 ---
-description: "Scan codebase and generate/audit/improve AGENTS.md files hierarchically. Flags: --audit, --improve, --update, --max-depth=N"
+description: "Scan codebase and generate/audit/improve AGENTS.md files hierarchically. Flags: --audit, --improve, --update, --dirty, --max-depth=N"
 ---
 
 Load and follow the `relentless:recon` skill with arguments: $ARGUMENTS

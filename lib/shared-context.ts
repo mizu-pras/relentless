@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, rmSync } from "fs";
 import { join } from "path";
+import { readDirtyDocs, formatDirtyDocsReport } from "./doc-tracker.js";
 
 const SHARED_CONTEXT_DIR = ".relentless/shared-context";
 const PROJECT_MAP_FILE = "project-map.md";
@@ -173,9 +174,10 @@ export function formatSharedContext(
   const conventions = readMarkdownContext(projectDir, "conventions");
   const decisions = readDecisions(projectDir, maxDecisions);
   const errors = readErrors(projectDir, maxErrors);
+  const dirtyDocs = readDirtyDocs(projectDir);
 
   // Return empty string when all channels are empty (W-3: avoid injecting placeholder-only context)
-  if (!projectMap && !conventions && decisions.length === 0 && errors.length === 0) {
+  if (!projectMap && !conventions && decisions.length === 0 && errors.length === 0 && dirtyDocs.length === 0) {
     return "";
   }
 
@@ -194,6 +196,8 @@ export function formatSharedContext(
           .join("\n")
       : "(none)";
 
+  const dirtyDocsReport = dirtyDocs.length > 0 ? formatDirtyDocsReport(projectDir) : "";
+
   return `## Shared Context
 
 ### Project Map
@@ -206,7 +210,7 @@ ${truncateMarkdown(conventions || "(not yet established)", MAX_MARKDOWN_CHARS)}
 ${decisionLines}
 
 ### Recent Errors (last ${maxErrors})
-${errorLines}`;
+${errorLines}${dirtyDocsReport ? `\n\n### Documentation Status\n${dirtyDocsReport}` : ""}`;
 }
 
 export function clearSharedContext(projectDir: string | undefined): void {

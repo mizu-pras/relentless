@@ -7,11 +7,8 @@
 ## Stack
 - Language: TypeScript (ES modules, `"type": "module"`)
 - Runtime: Node.js / Bun
-- Plugin SDK: `@opencode-ai/plugin@1.2.24`
 
 ## Common Commands
-- Install plugin and links: `bash install.sh`
-- Uninstall links: `bash uninstall.sh`
 - Build TypeScript: `npm run build`
 - Run tests: `npm test`
 
@@ -19,8 +16,8 @@
 - `agents/` agent definitions and model assignments
 - `commands/` slash-command wrappers (`/unleash`, `/recon`, etc.)
 - `skills/` injected and on-demand skills
-- `lib/` config/state/circuit-breaker runtime logic (TypeScript)
-- `docs/` specs and design notes
+- `lib/` runtime modules (config, state, circuit-breaker, shared-context, token-budget, compaction, doc-tracker)
+- `.opencode/` plugin build directory — `plugins/relentless.ts` is the main entrypoint
 
 ## Configuration
 - Defaults from `defaults.jsonc`
@@ -32,9 +29,3 @@
 - State lives in `.relentless/` (project-local)
 - `current-pursuit.json`: active orchestration state
 - `halt`: created by `/halt`, checked before actions
-
-## Non-Obvious Behaviors
-- Uses JSONC parsing (comments and trailing commas tolerated)
-- Loads some modules lazily with dynamic imports for resilience
-- Session compaction hook preserves orchestration context
-- Circuit breaker in `lib/circuit-breaker.ts` prevents runaway loops

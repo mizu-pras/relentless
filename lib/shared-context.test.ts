@@ -12,6 +12,7 @@ import {
   formatSummariesForHandoff,
   clearSharedContext,
 } from "./shared-context.js";
+import { markDocDirty, clearDocTracking } from "./doc-tracker.js";
 import { mkdirSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import assert from "assert";
@@ -143,6 +144,24 @@ console.log("PASS: formatSummariesForHandoff formats correctly");
 assert.strictEqual(formatSummariesForHandoff(TEST_DIR, []), "", "handoff with no files should return empty string");
 console.log("PASS: formatSummariesForHandoff returns empty for no files");
 
+markDocDirty(TEST_DIR, "lib/AGENTS.md", "lib/shared-context.ts was modified", "lib/shared-context.ts", "artisan");
+const summaryWithDirtyDocs = formatSharedContext(TEST_DIR, 2, 1);
+assert.ok(summaryWithDirtyDocs.includes("Documentation Status"), "formatSharedContext should include documentation status when dirty docs exist");
+assert.ok(summaryWithDirtyDocs.includes("lib/AGENTS.md"), "formatSharedContext should list dirty doc files");
+console.log("PASS: formatSharedContext includes dirty docs section");
+
+const docsOnlyDir = "/tmp/relentless-shared-context-docs-only-" + Date.now();
+mkdirSync(docsOnlyDir, { recursive: true });
+markDocDirty(docsOnlyDir, "README.md", "commands/unleash.ts changed", "commands/unleash.ts", "artisan");
+const docsOnlySummary = formatSharedContext(docsOnlyDir);
+assert.ok(docsOnlySummary.includes("Documentation Status"), "docs-only context should still include documentation status");
+assert.ok(docsOnlySummary.includes("README.md"), "docs-only context should include dirty docs report");
+console.log("PASS: formatSharedContext supports doc-dirty-only context");
+
+clearDocTracking(docsOnlyDir);
+assert.strictEqual(formatSharedContext(docsOnlyDir), "", "context should be empty after clearing only doc-tracking entries");
+console.log("PASS: formatSharedContext returns empty after doc tracking is cleared");
+
 clearSharedContext(TEST_DIR);
 assert.strictEqual(existsSync(join(TEST_DIR, ".relentless", "shared-context")), false, "clearSharedContext should remove shared-context directory");
 console.log("PASS: clearSharedContext removes shared-context directory");
@@ -154,4 +173,5 @@ console.log("PASS: reads return empty defaults after clearSharedContext");
 
 rmSync(TEST_DIR, { recursive: true });
 rmSync(emptySummaryDir, { recursive: true });
+rmSync(docsOnlyDir, { recursive: true });
 console.log("All shared context tests passed.");

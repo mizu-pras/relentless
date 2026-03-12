@@ -56,6 +56,23 @@ Skip any step = lying, not verifying
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
+## Documentation Dirty Check
+
+Before claiming completion, check if any documentation was marked dirty during this session:
+
+```
+1. RUN: Check formatDirtyDocsReport() or read .relentless/shared-context/doc-dirty.jsonl
+2. IF dirty docs exist:
+   a. Update the documentation OR
+   b. Explicitly acknowledge which docs need updating and why
+3. Mark docs as resolved via resolveDoc() after updating
+```
+
+| Claim | Requires |
+|-------|----------|
+| Docs are current | No dirty entries, or all resolved |
+| Feature complete | Dirty docs acknowledged in completion report |
+
 ## Red Flags - STOP
 
 - Using "should", "probably", "seems to"

@@ -60,6 +60,27 @@ function readSkill(skillName: string, variant = "SKILL"): string {
   return readFileSync(resolved, "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
 }
 
+// Slash-free command keywords that can trigger commands without "/" prefix.
+// Matches: "unleash - build X", "pursuit", "halt clear", etc.
+const COMMAND_KEYWORDS = ["unleash", "pursuit", "recon", "resume", "status", "halt"];
+const COMMAND_PATTERN = new RegExp(
+  `^(${COMMAND_KEYWORDS.join("|")})(?:\\s*[-–—:]\\s*|\\s+)(.+)$|^(${COMMAND_KEYWORDS.join("|")})\\s*$`,
+  "is",
+);
+
+function readCommandFile(command: string, args: string): string | null {
+  const resolved = join(PLUGIN_ROOT, `commands/${command}.md`);
+  if (!resolved.startsWith(PLUGIN_ROOT)) return null; // path traversal guard
+  if (!existsSync(resolved)) return null;
+
+  let content = readFileSync(resolved, "utf8");
+  // Strip frontmatter
+  content = content.replace(/^---[\s\S]*?---\n/, "").trim();
+  // Replace $ARGUMENTS placeholder with actual args
+  content = content.replace(/\$ARGUMENTS/g, args);
+  return content;
+}
+
 function readAgentModel(agentName: string): string {
   const resolved = join(PLUGIN_ROOT, `agents/${agentName}.md`);
   if (!resolved.startsWith(PLUGIN_ROOT)) return ""; // path traversal guard
@@ -122,18 +143,46 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
       input.agent.general.model = conductorModel;
     },
 
+    // Slash-free command interception: rewrite "unleash - task" → command template
+    "chat.message": async (_input, output) => {
+      // Find the first text part in the user message
+      const textPart = output.parts.find(
+        (p): p is typeof p & { type: "text"; text: string } => p.type === "text" && typeof (p as any).text === "string",
+      );
+      if (!textPart) return;
+
+      const text = (textPart as any).text.trim();
+      if (!text) return;
+
+      const match = text.match(COMMAND_PATTERN);
+      if (!match) return;
+
+      // match[1] = keyword (with args), match[2] = args, match[3] = keyword (no args)
+      const command = (match[1] || match[3]).toLowerCase();
+      const args = (match[2] || "").trim();
+
+      const rewritten = readCommandFile(command, args);
+      if (rewritten) {
+        (textPart as any).text = rewritten;
+      }
+    },
+
     "experimental.chat.system.transform": async (_input, output) => {
       const parts: string[] = [];
 
+      // Always inject lightweight bootstrap (commands, rules, skill index)
       if (usingRelentlessContent) {
-        parts.push(`<RELENTLESS_BOOTSTRAP>\n## Using Relentless\n\n${usingRelentlessContent}\n</RELENTLESS_BOOTSTRAP>`);
+        parts.push(`<RELENTLESS_BOOTSTRAP>\n${usingRelentlessContent}\n</RELENTLESS_BOOTSTRAP>`);
       }
-      parts.push(`<RELENTLESS_AGENTS>\n${agentCatalog}\n</RELENTLESS_AGENTS>`);
 
+      // Only inject heavy context (agent catalog, skill discipline, intent-gate,
+      // todo-enforcer) when an active pursuit exists. This saves ~900 tokens
+      // on every non-orchestration interaction.
       try {
         const { readPursuitState } = await getState();
         const state = readPursuitState(directory);
         if (state) {
+          parts.push(`<RELENTLESS_AGENTS>\n${agentCatalog}\n</RELENTLESS_AGENTS>`);
           if (usingRelentlessExtended) {
             parts.push(`<RELENTLESS_SKILL_DISCIPLINE>\n${usingRelentlessExtended}\n</RELENTLESS_SKILL_DISCIPLINE>`);
           }
@@ -148,7 +197,9 @@ Category routing: deep→artisan, visual→maestro, quick→scout, reason→sent
         console.warn("[relentless] Failed to load state module, skipping conditional injection:", e);
       }
 
-      (output.system ||= []).push(parts.join("\n\n"));
+      if (parts.length > 0) {
+        (output.system ||= []).push(parts.join("\n\n"));
+      }
     },
 
     "experimental.session.compacting": async (_input, output) => {

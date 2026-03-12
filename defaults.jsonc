@@ -32,5 +32,16 @@
     "max_depth": 4,
     "include_env_vars": true,
     "include_dependencies": true
+  },
+
+  // Documentation dirty-tracking
+  "doc_tracker": {
+    "enabled": true,
+    "patterns": [
+      { "glob": "lib/**/*.ts", "docs": ["lib/AGENTS.md", "README.md"] },
+      { "glob": "skills/**/*", "docs": ["skills/AGENTS.md", "README.md"] },
+      { "glob": "agents/**/*", "docs": ["agents/AGENTS.md", "README.md"] },
+      { "glob": "commands/**/*", "docs": ["commands/AGENTS.md", "README.md"] }
+    ]
   }
 }

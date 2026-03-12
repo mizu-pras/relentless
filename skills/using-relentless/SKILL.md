@@ -1,41 +1,28 @@
 <!-- Forked from superpowers by Jesse Vincent (MIT License) -->
 ---
 name: using-relentless
-description: Use when starting any Relentless session to enforce skill-first execution, halt awareness, and orchestration constraints before any response or action
+description: Lightweight bootstrap for Relentless-enabled sessions
 ---
 
 <SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this skill.
+If you were dispatched as a subagent to execute a specific task, skip this skill entirely.
 </SUBAGENT-STOP>
 
-<EXTREMELY-IMPORTANT>
-Invoke relevant skills BEFORE any response or action. Even a 1% chance a skill applies → invoke it. Not optional.
-</EXTREMELY-IMPORTANT>
+## Relentless Quick Reference
 
-## Instruction Priority
+**Orchestration commands:** `/unleash`, `/recon`, `/pursuit`, `/halt`, `/status`, `/resume`
 
-1. **User's explicit instructions** (AGENTS.md, direct requests) - highest
-2. **Relentless skills** - required process discipline
-3. **Default system prompt** - lowest
+**When to use orchestration:** Multi-file features, architectural changes, tasks needing multiple agents.
+**When NOT to:** Simple edits, single-file fixes, questions, quick tasks. Just do the work directly.
 
-## Skills Index
+## Rules
 
-### Core orchestration
-`intent-gate` · `todo-enforcer` · `pursuit` · `unleash` · `recon` · `ui-craft`
+1. If dispatched by Conductor → follow handoff constraints exactly.
+2. If `.relentless/halt` exists → stop and report state.
+3. Don't expand scope beyond assigned tasks/files.
 
-### Workflow
-`brainstorming` · `writing-plans` · `test-driven-development` · `systematic-debugging` · `verification-before-completion` · `requesting-code-review` · `receiving-code-review` · `finishing-a-development-branch` · `using-git-worktrees` · `writing-skills`
+## Skills (load on-demand via `skill` tool, only when relevant)
 
-## Operating Context
+`intent-gate` · `todo-enforcer` · `pursuit` · `unleash` · `recon` · `ui-craft` · `brainstorming` · `writing-plans` · `test-driven-development` · `systematic-debugging` · `verification-before-completion` · `requesting-code-review` · `receiving-code-review` · `finishing-a-development-branch` · `using-git-worktrees` · `writing-skills`
 
-- If dispatched by Conductor, follow handoff constraints exactly.
-- Before any action, check `.relentless/halt`. If it exists, stop immediately.
-- Do not expand scope beyond assigned tasks or assigned files.
-
-## Tool Mapping
-
-`Skill` → native `skill` tool · `TodoWrite` → `todowrite` · `Task` → subagent dispatch
-
-## Skills Location
-
-`/home/mizu/.config/opencode/skills/relentless/` — load via `skill` tool.
+Skills location: `/home/mizu/.config/opencode/skills/relentless/`
