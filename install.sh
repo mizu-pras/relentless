@@ -40,7 +40,7 @@ for agent in conductor artisan maestro sentinel scout code-reviewer; do
 done
 
 # Command registration
-for cmd in unleash pursuit recon resume status halt; do
+for cmd in unleash pursuit recon resume status halt history metrics recover health branch branches switch merge abandon; do
     ln -sf "$RELENTLESS_DIR/commands/$cmd.md" \
         "$OPENCODE_DIR/commands/$cmd.md"
     echo "  [ok] Command: /$cmd"
