@@ -16,8 +16,15 @@
 - `agents/` agent definitions and model assignments
 - `commands/` slash-command wrappers (`/unleash`, `/recon`, etc.)
 - `skills/` injected and on-demand skills
-- `lib/` runtime modules (config, state, circuit-breaker, shared-context, token-budget, compaction, doc-tracker, lessons)
+- `lib/` runtime modules (jsonc, config, state, circuit-breaker, shared-context, token-budget, compaction, doc-tracker, lessons, metrics, routing, templates, branching)
+- `bin/` CLI entrypoint for headless/CI usage
+- `templates/` pursuit templates (JSONC) for common task types
 - `.opencode/` plugin build directory — `plugins/relentless.ts` is the main entrypoint
+
+## Important Root Files
+- `defaults.jsonc` default configuration (JSONC with comments)
+- `eslint.config.js` ESLint flat config for TypeScript linting
+- `global-lessons.jsonl` cross-project lesson store (opt-in)
 
 ## Configuration
 - Defaults from `defaults.jsonc`

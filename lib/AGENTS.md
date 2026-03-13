@@ -4,7 +4,8 @@
 - Shared utilities for config loading, state persistence, and circuit-breaker protection.
 
 ## Key Files
-- `config.ts`: JSONC config loading and merge order
+- `jsonc.ts`: standalone JSONC parser — strips comments, removes trailing commas, exports `parseJsonc()`
+- `config.ts`: JSONC config loading and merge order (uses `jsonc.ts`)
 - `state.ts`: `.relentless/` state, halt management, and agent assignments
 - `shared-context.ts`: shared knowledge base for cross-agent context (project-map, conventions, decisions, errors, file-summaries, compression metrics)
 - `doc-tracker.ts`: documentation dirty-tracking — marks docs as needing update when source files change, tracks dirty/resolved status
@@ -16,7 +17,7 @@
 - `metrics.ts`: pursuit analytics — computes metrics from archived pursuits and lessons (pursuit completion, agent performance, error patterns)
 - `templates.ts`: pursuit template loading, matching, and application — loads JSONC templates, matches task descriptions to templates via keyword patterns, applies templates to pre-populate pursuit todos
 - `branching.ts`: pursuit branching state management — branch registry, create/switch/merge/abandon branches, git worktree integration, max branch enforcement
-- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`, `routing.test.ts`, `templates.test.ts`, `branching.test.ts`)
+- `*.test.ts`: unit tests for each module (`jsonc.test.ts`, `config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`, `routing.test.ts`, `templates.test.ts`, `branching.test.ts`)
 
 ## Commands
 - `npm run build` — compile via `tsc -p lib/tsconfig.json`

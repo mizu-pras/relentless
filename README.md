@@ -18,6 +18,12 @@ Relentless breaks complex tasks into specialized work, dispatches them to purpos
 | Session resilience | `/resume` picks up interrupted work from saved state |
 | Runaway protection | 5-layer circuit breaker prevents infinite loops |
 | Framework gotcha learning | Persistent lessons system recognizes recurring build/framework patterns |
+| Pursuit branching | `/branch` explores alternative approaches in isolated worktrees |
+| Pursuit templates | Pre-built todo templates for common task types (API, bugfix, refactor, etc.) |
+| Smart routing | Learning-based agent selection improves over time (opt-in) |
+| Pursuit analytics | `/metrics` tracks completion rates, agent performance, and costs |
+| Health diagnostics | `/health` validates installation and catches configuration issues |
+| Headless/CI mode | `relentless` CLI for non-interactive environments |
 
 ## Quick Start
 
@@ -46,6 +52,15 @@ bash ~/.config/opencode/relentless/uninstall.sh
 | `/status` | Show current orchestration state and progress |
 | `/halt` | Stop all orchestration immediately, save state |
 | `/halt clear` | Clear the halt flag so `/resume` can proceed |
+| `/history` | Browse archived pursuit history (`--list`, `--detail <id>`, `--stats`) |
+| `/metrics` | Display pursuit analytics and performance metrics (`--detailed`, `--json`) |
+| `/recover` | Recover from failed or stuck pursuits (`--report`, `--soft`, `--hard`) |
+| `/health` | Run diagnostic health checks on installation (`--fix`) |
+| `/branch "task"` | Create a new pursuit branch for alternative approaches (experimental) |
+| `/branches` | List all active pursuit branches with status |
+| `/switch <id>` | Switch to a different pursuit branch |
+| `/merge <id>` | Merge a successful pursuit branch back into main pursuit |
+| `/abandon <id>` | Abandon a pursuit branch and clean up resources |
 
 ## Agents
 
@@ -79,14 +94,12 @@ Six specialized agents, each assigned to the model best suited for its role:
 │   ├── sentinel.md
 │   ├── scout.md
 │   └── code-reviewer.md
-├── commands/             # Slash-command wrappers
+├── commands/             # Slash-command wrappers (15 commands)
 │   ├── AGENTS.md
-│   ├── unleash.md
-│   ├── pursuit.md
-│   ├── recon.md
-│   ├── resume.md
-│   ├── status.md
-│   └── halt.md
+│   ├── unleash.md, pursuit.md, recon.md, resume.md
+│   ├── status.md, halt.md, history.md, metrics.md
+│   ├── recover.md, health.md
+│   └── branch.md, branches.md, switch.md, merge.md, abandon.md
 ├── skills/               # Injected and on-demand relentless skills
 │   ├── AGENTS.md
 │   ├── intent-gate/                 # Analyze intent before acting
@@ -106,24 +119,48 @@ Six specialized agents, each assigned to the model best suited for its role:
 │   ├── receiving-code-review/       # Review feedback handling workflow
 │   ├── finishing-a-development-branch/ # Branch completion workflow
 │   ├── using-git-worktrees/         # Isolated feature workspace setup
-│   └── writing-skills/              # Skill authoring meta-workflow
+│   ├── writing-skills/              # Skill authoring meta-workflow
+│   ├── history/                     # Pursuit archive browser
+│   ├── preflight/                   # Pre-pursuit dependency verification
+│   ├── metrics/                     # Pursuit analytics display
+│   ├── recovery/                    # Stuck pursuit recovery
+│   ├── health/                      # Installation diagnostics
+│   └── branching/                   # Pursuit branching (experimental)
 ├── lib/                  # Runtime logic (TypeScript)
 │   ├── AGENTS.md
-│   ├── config.ts         # JSONC config loading and merge
-│   ├── state.ts          # .relentless/ state and halt management
+│   ├── jsonc.ts               # Standalone JSONC parser
+│   ├── config.ts              # JSONC config loading and merge
+│   ├── state.ts               # .relentless/ state and halt management
 │   ├── circuit-breaker.ts     # 5-layer runaway protection
 │   ├── shared-context.ts      # Cross-agent context sharing + compression metrics
 │   ├── token-budget.ts        # Proactive token budget forecasting
 │   ├── compaction.ts          # Differential compaction for long pursuits
 │   ├── doc-tracker.ts         # Documentation dirty-tracking
 │   ├── lessons.ts             # Persistent learning system + framework gotcha database
+│   ├── metrics.ts             # Pursuit analytics (completion, agents, errors, costs)
+│   ├── routing.ts             # Learning-based agent routing
+│   ├── templates.ts           # Pursuit template loading and matching
+│   ├── branching.ts           # Pursuit branch state management
 │   ├── *.test.ts              # Unit tests for each module
 │   ├── tsconfig.json
 │   └── dist/             # Compiled JavaScript output
+├── bin/                  # CLI entrypoint for headless/CI usage
+│   ├── relentless.ts          # CLI with recon, health, verify, metrics subcommands
+│   └── tsconfig.json
+├── templates/            # Pursuit templates (JSONC) for common task types
+│   ├── api-endpoint.jsonc
+│   ├── bugfix.jsonc
+│   ├── migration.jsonc
+│   ├── refactoring.jsonc
+│   ├── test-suite.jsonc
+│   ├── ui-component.jsonc
+│   └── github-actions/        # CI workflow templates
 ├── docs/                 # Specs and design notes
 │   ├── specs/
 │   └── plans/
 ├── defaults.jsonc        # Default configuration
+├── eslint.config.js      # ESLint flat config
+├── global-lessons.jsonl  # Cross-project lesson store (opt-in)
 ├── install.sh            # Build + install symlinks and config
 └── uninstall.sh          # Remove symlinks
 ```
@@ -235,7 +272,36 @@ Configuration uses JSONC (comments and trailing commas allowed).
   "lessons": {
     "enabled": true,
     "max_lessons_in_context": 10,
-    "max_lessons_in_handoff": 5
+    "max_lessons_in_handoff": 5,
+    "share_globally": false       // Opt-in: promote lessons to global store
+  },
+
+  // Documentation dirty-tracking
+  "doc_tracker": {
+    "enabled": true,
+    "patterns": [
+      { "glob": "lib/**/*.ts", "docs": ["lib/AGENTS.md", "README.md"] }
+    ]
+  },
+
+  // Smart agent routing (learning-based, opt-in)
+  "routing": {
+    "learning_enabled": false,
+    "min_data_points": 5
+  },
+
+  // Pursuit templates
+  "templates": {
+    "enabled": true,
+    "auto_suggest": true,
+    "custom_dir": null            // Override: .opencode/relentless-templates/
+  },
+
+  // Pursuit branching (experimental)
+  "branching": {
+    "enabled": true,
+    "max_branches": 3,
+    "worktree_dir": ".worktrees"
   }
 }
 ```
@@ -246,7 +312,7 @@ Relentless is self-contained and ships with both core orchestration skills and b
 
 | Category | Skills |
 |----------|--------|
-| Core orchestration | intent-gate, todo-enforcer, using-relentless, pursuit, unleash, recon, chunk-gate, ui-craft |
+| Core orchestration | intent-gate, todo-enforcer, using-relentless, pursuit, unleash, recon, chunk-gate, ui-craft, history, preflight, metrics, recovery, health, branching |
 | Workflow | brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, requesting-code-review, receiving-code-review, finishing-a-development-branch, using-git-worktrees, writing-skills |
 
 During autonomous `/unleash` runs, Conductor acts as **proxy user** for skill approval checkpoints — no human intervention needed between task start and final report.
