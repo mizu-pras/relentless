@@ -1,0 +1,22 @@
+{
+  "name": "ui-component",
+  "description": "Build a new UI component with states, styling, and interaction coverage",
+  "patterns": ["component", "ui", "react", "vue", "svelte", "frontend", "widget"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Define component API and UX states", "agent": "maestro" },
+    { "id": "T-002", "subject": "Implement base component structure", "agent": "maestro" },
+    { "id": "T-003", "subject": "Wire state, events, and accessibility", "agent": "artisan" },
+    { "id": "T-004", "subject": "Style responsive layouts and variants", "agent": "maestro" },
+    { "id": "T-005", "subject": "Add component interaction tests", "agent": "artisan" }
+  ],
+  "suggested_agents": {
+    "T-001": "maestro",
+    "T-002": "maestro",
+    "T-003": "artisan",
+    "T-004": "maestro",
+    "T-005": "artisan"
+  },
+  "typical_files": ["src/components/**", "src/styles/**", "src/hooks/**", "tests/**"],
+  "skip_brainstorming": true,
+  "skip_planning": false
+}

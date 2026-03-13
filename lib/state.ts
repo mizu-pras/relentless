@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 import { clearSharedContext, readErrors } from "./shared-context.js";
 import { clearCompactionSnapshot } from "./compaction.js";
-import { readLessons, writeLessons, extractLessons } from "./lessons.js";
+import { readLessons, writeLessons, extractLessons, promoteToGlobal } from "./lessons.js";
+import { loadConfig } from "./config.js";
 import type { TokenTracking } from "./token-budget.js";
 
 const STATE_DIR = ".relentless";
@@ -132,6 +133,17 @@ export function archiveCompleted(projectDir?: string): string | null {
     }
   } catch (e) {
     console.warn("[relentless] Failed to extract lessons during archive:", e);
+  }
+  // Promote lessons to global store if configured
+  try {
+    const config = loadConfig(projectDir);
+    const lessonsConfig = (config as unknown as Record<string, Record<string, unknown>>).lessons;
+    if (lessonsConfig?.share_globally) {
+      const projectId = resolve(projectDir || ".").split("/").pop() || "unknown";
+      promoteToGlobal(projectDir, projectId);
+    }
+  } catch (e) {
+    console.warn("[relentless] Failed to promote lessons to global during archive:", e);
   }
   try {
     clearSharedContext(projectDir);

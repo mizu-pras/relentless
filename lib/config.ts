@@ -1,6 +1,8 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
+import { parseJsonc } from "./jsonc.js";
+
 interface CategoriesConfig {
   deep: string;
   visual: string;
@@ -28,11 +30,25 @@ interface ReconConfig {
   include_dependencies: boolean;
 }
 
+interface TemplatesConfig {
+  enabled: boolean;
+  auto_suggest: boolean;
+  custom_dir: string | null;
+}
+
+interface BranchingConfig {
+  enabled: boolean;
+  max_branches: number;
+  worktree_dir: string;
+}
+
 export interface RelentlessConfig {
   categories: CategoriesConfig;
   circuit_breaker: CircuitBreakerConfig;
   pursuit: PursuitConfig;
   recon: ReconConfig;
+  templates: TemplatesConfig;
+  branching: BranchingConfig;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -62,6 +78,16 @@ export function loadConfig(projectDir?: string): RelentlessConfig {
       include_env_vars: true,
       include_dependencies: true,
     },
+    templates: {
+      enabled: true,
+      auto_suggest: true,
+      custom_dir: null,
+    },
+    branching: {
+      enabled: true,
+      max_branches: 3,
+      worktree_dir: ".worktrees",
+    },
   };
 
   const userConfigPath = join(process.env.HOME || "~", ".config/opencode/relentless.jsonc");
@@ -71,7 +97,7 @@ export function loadConfig(projectDir?: string): RelentlessConfig {
 
   if (existsSync(userConfigPath)) {
     try {
-      const userConfig = parseJsonc(readFileSync(userConfigPath, "utf8"));
+      const userConfig = parseJsonc(readFileSync(userConfigPath, "utf8")) as JsonObject;
       config = deepMerge(config as unknown as JsonObject, userConfig) as unknown as RelentlessConfig;
     } catch (e: unknown) {
       console.warn(`[relentless] Failed to parse ${userConfigPath}: ${(e as Error).message}`);
@@ -80,7 +106,7 @@ export function loadConfig(projectDir?: string): RelentlessConfig {
 
   if (projectDir && existsSync(projectConfigPath)) {
     try {
-      const projectConfig = parseJsonc(readFileSync(projectConfigPath, "utf8"));
+      const projectConfig = parseJsonc(readFileSync(projectConfigPath, "utf8")) as JsonObject;
       config = deepMerge(config as unknown as JsonObject, projectConfig) as unknown as RelentlessConfig;
     } catch (e: unknown) {
       console.warn(`[relentless] Failed to parse ${projectConfigPath}: ${(e as Error).message}`);
@@ -88,14 +114,6 @@ export function loadConfig(projectDir?: string): RelentlessConfig {
   }
 
   return config;
-}
-
-function parseJsonc(text: string): JsonObject {
-  const stripped = text
-    .replace(/\/\/.*$/gm, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/,(\s*[}\]])/g, "$1");
-  return JSON.parse(stripped) as JsonObject;
 }
 
 function isPlainObject(value: unknown): value is JsonObject {

@@ -29,6 +29,16 @@ const DEFAULTS = {
     include_env_vars: true,
     include_dependencies: true,
   },
+  templates: {
+    enabled: true,
+    auto_suggest: true,
+    custom_dir: null,
+  },
+  branching: {
+    enabled: true,
+    max_branches: 3,
+    worktree_dir: ".worktrees",
+  },
 };
 
 const originalHome = process.env.HOME;

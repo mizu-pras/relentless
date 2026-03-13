@@ -1,17 +1,22 @@
 {
   "name": "relentless",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "type": "module",
   "description": "Autonomous multi-agent orchestration for OpenCode",
+  "bin": {
+    "relentless": "bin/dist/relentless.js"
+  },
   "scripts": {
     "build": "tsc -p lib/tsconfig.json",
-    "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js && node lib/dist/metrics.test.js && node lib/dist/routing.test.js && tsc -p .opencode/tsconfig.json && node .opencode/dist/relentless.test.js",
-    "test:only": "node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js && node lib/dist/metrics.test.js && node lib/dist/routing.test.js",
+    "build:bin": "tsc -p bin/tsconfig.json",
+    "build:all": "tsc -p lib/tsconfig.json && tsc -p bin/tsconfig.json",
+    "test": "tsc -p lib/tsconfig.json && node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js && node lib/dist/metrics.test.js && node lib/dist/routing.test.js && node lib/dist/templates.test.js && node lib/dist/branching.test.js && tsc -p .opencode/tsconfig.json && node .opencode/dist/relentless.test.js",
+    "test:only": "node lib/dist/circuit-breaker.test.js && node lib/dist/state.test.js && node lib/dist/config.test.js && node lib/dist/shared-context.test.js && node lib/dist/token-budget.test.js && node lib/dist/compaction.test.js && node lib/dist/doc-tracker.test.js && node lib/dist/lessons.test.js && node lib/dist/metrics.test.js && node lib/dist/routing.test.js && node lib/dist/templates.test.js && node lib/dist/branching.test.js",
     "test:plugin": "tsc -p .opencode/tsconfig.json && node .opencode/dist/relentless.test.js",
     "typecheck": "tsc -p lib/tsconfig.json --noEmit",
     "dev": "tsc -p lib/tsconfig.json --watch",
-    "lint": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts'",
-    "lint:fix": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts' --fix"
+    "lint": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts' 'bin/**/*.ts'",
+    "lint:fix": "eslint 'lib/**/*.ts' '.opencode/plugins/**/*.ts' 'bin/**/*.ts' --fix"
   },
   "devDependencies": {
     "typescript": "^5.8.0",

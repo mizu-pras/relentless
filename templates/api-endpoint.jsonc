@@ -1,0 +1,22 @@
+{
+  "name": "api-endpoint",
+  "description": "Create a new API endpoint with route, handler, validation, and tests",
+  "patterns": ["api", "endpoint", "route", "handler", "rest", "http"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Define route and handler structure", "agent": "artisan" },
+    { "id": "T-002", "subject": "Implement request validation", "agent": "artisan" },
+    { "id": "T-003", "subject": "Implement business logic", "agent": "artisan" },
+    { "id": "T-004", "subject": "Add error handling and edge cases", "agent": "artisan" },
+    { "id": "T-005", "subject": "Write unit and integration tests", "agent": "artisan" }
+  ],
+  "suggested_agents": {
+    "T-001": "artisan",
+    "T-002": "artisan",
+    "T-003": "artisan",
+    "T-004": "artisan",
+    "T-005": "artisan"
+  },
+  "typical_files": ["src/routes/**", "src/handlers/**", "src/middleware/**", "tests/**"],
+  "skip_brainstorming": true,
+  "skip_planning": false
+}

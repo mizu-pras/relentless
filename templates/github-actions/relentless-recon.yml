@@ -1,0 +1,37 @@
+# Relentless CI/CD Integration
+# Copy this workflow to your project's .github/workflows/ directory
+name: Relentless Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  relentless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build CLI
+        run: npx tsc -p bin/tsconfig.json
+
+      - name: Health Check
+        run: node bin/dist/relentless.js health --headless --exit-code --json
+
+      - name: Verification Gate
+        run: node bin/dist/relentless.js verify --headless --exit-code --json
+
+      - name: Recon Report
+        run: node bin/dist/relentless.js recon --headless --json

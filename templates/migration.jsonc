@@ -1,0 +1,22 @@
+{
+  "name": "migration",
+  "description": "Implement a schema or platform migration with compatibility and rollback checks",
+  "patterns": ["migration", "migrate", "database", "schema", "upgrade", "sql"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Define migration plan and rollback strategy", "agent": "sentinel" },
+    { "id": "T-002", "subject": "Implement migration scripts", "agent": "artisan" },
+    { "id": "T-003", "subject": "Add data backfill and validation checks", "agent": "artisan" },
+    { "id": "T-004", "subject": "Update application compatibility paths", "agent": "artisan" },
+    { "id": "T-005", "subject": "Add migration verification tests", "agent": "artisan" }
+  ],
+  "suggested_agents": {
+    "T-001": "sentinel",
+    "T-002": "artisan",
+    "T-003": "artisan",
+    "T-004": "artisan",
+    "T-005": "artisan"
+  },
+  "typical_files": ["migrations/**", "db/**", "src/**", "tests/**"],
+  "skip_brainstorming": true,
+  "skip_planning": false
+}

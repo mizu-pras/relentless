@@ -26,13 +26,29 @@ Apply `relentless:intent-gate` to the task:
 - If trivial: handle directly without orchestration
 - If clear and non-trivial: proceed to Phase 2
 
+## Phase 1b: Template Matching
+
+After intent classification, check if a pursuit template matches the task:
+
+1. Call `findBestTemplate(task, projectDir)` from `lib/templates.ts`
+2. If a match is found with confidence >= 0.5:
+   - Offer to use the template: "Found template `<name>` (confidence: <N>%). Use it?"
+   - If accepted: pre-populate todos from template, skip brainstorming/planning as configured
+   - If declined: proceed to Phase 2 as normal
+3. If no match or confidence < 0.5: proceed to Phase 2
+
+Templates live in `templates/` (built-in) and `.opencode/relentless-templates/` (project overrides).
+Template matching is configurable via `templates.enabled` in config (default: true).
+
 ## Phase 2: Planning (Conductor)
 
 Activate as Conductor. Then:
-1. Invoke `relentless:brainstorming` if task complexity warrants it (architectural decisions, unclear scope)
-2. Invoke `relentless:writing-plans` to create a structured implementation plan
-3. Save the plan summary to `.relentless/current-pursuit.json`
-4. Create todos for each planned step (use TodoWrite)
+1. If a template was applied and `skip_brainstorming` is set, skip brainstorming
+2. Otherwise, invoke `relentless:brainstorming` if task complexity warrants it (architectural decisions, unclear scope)
+3. If a template was applied and `skip_planning` is set, skip planning
+4. Otherwise, invoke `relentless:writing-plans` to create a structured implementation plan
+5. Save the plan summary to `.relentless/current-pursuit.json`
+6. Create todos for each planned step (use TodoWrite) — merge with template todos if applicable
 
 **Remember:** You (Conductor) are the proxy user for relentless skill approval gates. Do not escalate brainstorming or plan approval to the human user.
 

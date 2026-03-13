@@ -14,6 +14,11 @@
 - `/metrics`: display pursuit analytics and performance metrics (supports `--detailed`, `--json`)
 - `/recover`: recover from failed or stuck pursuits (supports `--report`, `--soft`, `--hard`)
 - `/health`: run diagnostic health checks on installation (supports `--fix`)
+- `/branch`: create a new pursuit branch for exploring alternative approaches (experimental)
+- `/branches`: list all active pursuit branches with status
+- `/switch`: switch to a different pursuit branch
+- `/merge`: merge a successful pursuit branch back into main pursuit
+- `/abandon`: abandon a pursuit branch and clean up resources
 
 ## Behavioral Notes
 - Command files are thin wrappers; heavy logic lives in plugin runtime/skills.

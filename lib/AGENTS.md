@@ -14,7 +14,9 @@
 - `compaction.ts`: differential compaction — tracks state changes between compactions and only injects deltas
 - `lessons.ts`: persistent agent learning system — extracts, categorizes, and stores lessons from resolved errors across pursuits
 - `metrics.ts`: pursuit analytics — computes metrics from archived pursuits and lessons (pursuit completion, agent performance, error patterns)
-- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`, `routing.test.ts`)
+- `templates.ts`: pursuit template loading, matching, and application — loads JSONC templates, matches task descriptions to templates via keyword patterns, applies templates to pre-populate pursuit todos
+- `branching.ts`: pursuit branching state management — branch registry, create/switch/merge/abandon branches, git worktree integration, max branch enforcement
+- `*.test.ts`: unit tests for each module (`config.test.ts`, `state.test.ts`, `circuit-breaker.test.ts`, `shared-context.test.ts`, `token-budget.test.ts`, `compaction.test.ts`, `doc-tracker.test.ts`, `lessons.test.ts`, `metrics.test.ts`, `routing.test.ts`, `templates.test.ts`, `branching.test.ts`)
 
 ## Commands
 - `npm run build` — compile via `tsc -p lib/tsconfig.json`
@@ -110,6 +112,35 @@
 - `formatRoutingSuggestions()` only emits content when actual overrides exist (saves tokens)
 - Opt-in via `routing.learning_enabled: false` in config (default off)
 - Configurable threshold: `routing.min_data_points: 5`
+
+## Pursuit Templates
+- `templates.ts` provides template loading, matching, and application
+- Templates are JSONC files in `templates/` (built-in) and `.opencode/relentless-templates/` (project overrides)
+- Built-in templates: `api-endpoint`, `ui-component`, `refactoring`, `migration`, `test-suite`, `bugfix`
+- `loadTemplates(projectDir?)` loads from project dir first, then built-in dir, dedupes by name
+- `matchTemplates(task, templates)` scores by keyword pattern match ratio, filters >= 0.3 confidence
+- `applyTemplate(template)` converts template todos to `PursuitTodo[]` with `status: "pending"`
+- `findBestTemplate(task, projectDir?)` convenience function: load + match + return top or null
+- Configurable via `templates` key in config: `enabled`, `auto_suggest`, `custom_dir`
+
+## Pursuit Branching (Experimental)
+- `branching.ts` manages pursuit branch state in `.relentless/branches.json`
+- `BranchRegistry` tracks all branches with `max_branches` limit (default: 3)
+- Branch lifecycle: create → active → paused/merged/abandoned
+- `createBranch()` generates git-safe branch names (`pursuit/<sanitized-task>`), worktree paths (`.worktrees/pursuit-<id>`)
+- `switchBranch()` updates active branch, pauses previous
+- `mergeBranch()` marks branch as merged, `abandonBranch()` marks as abandoned
+- `formatBranchList()` produces formatted table with active branch marker
+- Integrates with `using-git-worktrees` skill for worktree isolation
+- Configurable via `branching` key in config: `enabled`, `max_branches`, `worktree_dir`
+
+## CLI / Headless Mode
+- `bin/relentless.ts` provides CLI entrypoint for CI/CD integration
+- Subcommands: `recon`, `health`, `verify`, `metrics`
+- Flags: `--headless`, `--json`, `--exit-code`, `--detailed`, `--project-dir`
+- Compiled separately via `tsc -p bin/tsconfig.json` → `bin/dist/relentless.js`
+- Dynamically imports `lib/dist/metrics.js` at runtime for metrics command
+- GitHub Actions template at `templates/github-actions/relentless-recon.yml`
 
 ## Implementation Conventions
 - Prefer lazy or dynamic imports where resilience is needed

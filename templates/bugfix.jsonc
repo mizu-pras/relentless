@@ -1,0 +1,20 @@
+{
+  "name": "bugfix",
+  "description": "Diagnose and fix a reported defect with regression coverage",
+  "patterns": ["bug", "fix", "broken", "error", "crash", "regression", "issue"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Reproduce the failure and isolate root cause", "agent": "sentinel" },
+    { "id": "T-002", "subject": "Implement the minimal corrective change", "agent": "artisan" },
+    { "id": "T-003", "subject": "Add regression test coverage", "agent": "artisan" },
+    { "id": "T-004", "subject": "Verify fix across related edge cases", "agent": "sentinel" }
+  ],
+  "suggested_agents": {
+    "T-001": "sentinel",
+    "T-002": "artisan",
+    "T-003": "artisan",
+    "T-004": "sentinel"
+  },
+  "typical_files": ["src/**", "lib/**", "tests/**", "logs/**"],
+  "skip_brainstorming": true,
+  "skip_planning": true
+}

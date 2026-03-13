@@ -12,8 +12,9 @@ import {
   assignFiles,
   releaseFiles,
 } from "./state.js";
-import { mkdirSync, rmSync, existsSync } from "fs";
+import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync, unlinkSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import assert from "assert";
 
 const TEST_DIR = "/tmp/relentless-test-" + Date.now();
@@ -86,6 +87,103 @@ releaseFiles(TEST_DIR, "artisan");
 assert.strictEqual(isFileAssigned(TEST_DIR, "lib/state.ts"), null, "releaseFiles should remove assignments for agent");
 assert.ok(isFileAssigned(TEST_DIR, "lib/circuit-breaker.ts"), "releaseFiles should keep other agent assignments");
 console.log("PASS: agent assignment read/write/check/assign/release");
+
+const globalLessonsPath = join(homedir(), ".config", "opencode", "relentless", "global-lessons.jsonl");
+const globalLessonsExisted = existsSync(globalLessonsPath);
+const globalLessonsBackup = globalLessonsExisted ? readFileSync(globalLessonsPath, "utf8") : "";
+
+const shareTrueDir = join(TEST_DIR, "share-true");
+mkdirSync(join(shareTrueDir, ".opencode"), { recursive: true });
+writePursuitState(shareTrueDir, { task: "promote true", todos: [], current_loop: 1, max_loops: 1 });
+writeFileSync(
+  join(shareTrueDir, ".relentless", "lessons.jsonl"),
+  `${JSON.stringify({
+    id: "L-promote-true",
+    category: "type_error",
+    pattern: "Type mismatch in API payload",
+    resolution: "Normalize payload type before call",
+    frequency: 3,
+    agents: ["artisan"],
+    examples: ["Type error in handler"],
+    first_seen: "2026-03-13T00:00:00.000Z",
+    last_seen: "2026-03-13T00:00:00.000Z",
+    source_files: ["src/api.ts", "src/service.ts"],
+  })}\n`,
+  "utf8",
+);
+writeFileSync(join(shareTrueDir, ".opencode", "relentless.jsonc"), `{"lessons":{"share_globally":true}}`, "utf8");
+const promotedArchivePath = archiveCompleted(shareTrueDir);
+assert.ok(promotedArchivePath, "archive should succeed when share_globally is enabled");
+assert.strictEqual(existsSync(globalLessonsPath), true, "should create global lessons store when share_globally is true");
+const promotedGlobalContent = readFileSync(globalLessonsPath, "utf8");
+assert.ok(promotedGlobalContent.includes('"id":"L-promote-true"'), "should promote qualifying lesson to global store");
+console.log("PASS: archiveCompleted promotes lessons globally when enabled");
+
+const shareFalseDir = join(TEST_DIR, "share-false");
+mkdirSync(shareFalseDir, { recursive: true });
+writePursuitState(shareFalseDir, { task: "promote false", todos: [], current_loop: 1, max_loops: 1 });
+writeFileSync(
+  join(shareFalseDir, ".relentless", "lessons.jsonl"),
+  `${JSON.stringify({
+    id: "L-promote-false",
+    category: "type_error",
+    pattern: "Type mismatch in API payload",
+    resolution: "Normalize payload type before call",
+    frequency: 3,
+    agents: ["artisan"],
+    examples: ["Type error in handler"],
+    first_seen: "2026-03-13T00:00:00.000Z",
+    last_seen: "2026-03-13T00:00:00.000Z",
+    source_files: ["src/api.ts", "src/service.ts"],
+  })}\n`,
+  "utf8",
+);
+const globalBeforeShareFalse = existsSync(globalLessonsPath) ? readFileSync(globalLessonsPath, "utf8") : "";
+const notPromotedArchivePath = archiveCompleted(shareFalseDir);
+assert.ok(notPromotedArchivePath, "archive should succeed when share_globally is disabled");
+const globalAfterShareFalse = existsSync(globalLessonsPath) ? readFileSync(globalLessonsPath, "utf8") : "";
+assert.strictEqual(globalAfterShareFalse, globalBeforeShareFalse, "should not change global lessons store by default");
+console.log("PASS: archiveCompleted does not promote lessons globally by default");
+
+const shareFailureDir = join(TEST_DIR, "share-failure");
+mkdirSync(join(shareFailureDir, ".opencode"), { recursive: true });
+writePursuitState(shareFailureDir, { task: "promote failure", todos: [], current_loop: 1, max_loops: 1 });
+writeFileSync(
+  join(shareFailureDir, ".relentless", "lessons.jsonl"),
+  `${JSON.stringify({
+    id: "L-promote-failure",
+    category: "type_error",
+    pattern: "Type mismatch in API payload",
+    resolution: "Normalize payload type before call",
+    frequency: 3,
+    agents: ["artisan"],
+    examples: ["Type error in handler"],
+    first_seen: "2026-03-13T00:00:00.000Z",
+    last_seen: "2026-03-13T00:00:00.000Z",
+    source_files: ["src/api.ts", "src/service.ts"],
+  })}\n`,
+  "utf8",
+);
+writeFileSync(join(shareFailureDir, ".opencode", "relentless.jsonc"), `{"lessons":{"share_globally":true}}`, "utf8");
+if (existsSync(globalLessonsPath)) {
+  rmSync(globalLessonsPath, { recursive: true, force: true });
+}
+mkdirSync(globalLessonsPath, { recursive: true });
+const failureArchivePath = archiveCompleted(shareFailureDir);
+assert.ok(failureArchivePath, "archive should still succeed even if lesson promotion fails");
+assert.strictEqual(
+  existsSync(join(shareFailureDir, ".relentless", "current-pursuit.json")),
+  false,
+  "archive should still remove current pursuit when promotion fails",
+);
+console.log("PASS: archiveCompleted gracefully degrades when promotion fails");
+
+rmSync(globalLessonsPath, { recursive: true, force: true });
+if (globalLessonsExisted) {
+  writeFileSync(globalLessonsPath, globalLessonsBackup, "utf8");
+} else if (existsSync(globalLessonsPath)) {
+  unlinkSync(globalLessonsPath);
+}
 
 rmSync(TEST_DIR, { recursive: true });
 console.log("All state tests passed.");

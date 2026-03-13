@@ -74,5 +74,19 @@
       "npm run build",
       "npm test"
     ]
+  },
+
+  // Pursuit templates
+  "templates": {
+    "enabled": true,                   // Enable template matching during /unleash
+    "auto_suggest": true,              // Suggest matching template after intent classification
+    "custom_dir": null                 // Project-level template directory override (default: .opencode/relentless-templates/)
+  },
+
+  // Pursuit branching (experimental)
+  "branching": {
+    "enabled": true,                   // Enable pursuit branching commands
+    "max_branches": 3,                 // Maximum concurrent branches (active + paused)
+    "worktree_dir": ".worktrees"       // Directory for git worktrees
   }
 }

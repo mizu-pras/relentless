@@ -16,6 +16,7 @@
 - **metrics/** — Pursuit analytics and performance metrics. On-demand via `/metrics`.
 - **recovery/** — Structured recovery from failed or stuck pursuits. On-demand via `/recover`.
 - **health/** — Diagnostic health checks for Relentless installation. On-demand via `/health`.
+- **branching/** — Pursuit branching for exploring alternative approaches. On-demand via `/branch`, `/branches`, `/switch`. Experimental.
 
 ### Workflow Skills (forked from superpowers, MIT License)
 - **brainstorming/** — Collaborative design exploration before implementation.

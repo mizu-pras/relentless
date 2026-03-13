@@ -1,0 +1,22 @@
+{
+  "name": "refactoring",
+  "description": "Restructure existing code for clarity and maintainability without behavior changes",
+  "patterns": ["refactor", "restructure", "reorganize", "extract", "simplify", "clean up", "dry"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Map current architecture and pain points", "agent": "sentinel" },
+    { "id": "T-002", "subject": "Define safe refactor boundaries", "agent": "sentinel" },
+    { "id": "T-003", "subject": "Extract and reorganize code incrementally", "agent": "artisan" },
+    { "id": "T-004", "subject": "Run regression checks after each slice", "agent": "artisan" },
+    { "id": "T-005", "subject": "Document structural changes", "agent": "artisan" }
+  ],
+  "suggested_agents": {
+    "T-001": "sentinel",
+    "T-002": "sentinel",
+    "T-003": "artisan",
+    "T-004": "artisan",
+    "T-005": "artisan"
+  },
+  "typical_files": ["src/**", "lib/**", "tests/**", "docs/**"],
+  "skip_brainstorming": false,
+  "skip_planning": false
+}

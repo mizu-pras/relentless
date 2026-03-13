@@ -1,0 +1,22 @@
+{
+  "name": "test-suite",
+  "description": "Add or expand tests to improve confidence and coverage across critical paths",
+  "patterns": ["test", "tests", "testing", "coverage", "spec", "e2e"],
+  "default_todos": [
+    { "id": "T-001", "subject": "Identify critical gaps in current test coverage", "agent": "sentinel" },
+    { "id": "T-002", "subject": "Add unit tests for core logic", "agent": "artisan" },
+    { "id": "T-003", "subject": "Add integration or end-to-end scenarios", "agent": "artisan" },
+    { "id": "T-004", "subject": "Stabilize flaky tests and fixtures", "agent": "artisan" },
+    { "id": "T-005", "subject": "Report coverage changes and risk areas", "agent": "sentinel" }
+  ],
+  "suggested_agents": {
+    "T-001": "sentinel",
+    "T-002": "artisan",
+    "T-003": "artisan",
+    "T-004": "artisan",
+    "T-005": "sentinel"
+  },
+  "typical_files": ["tests/**", "src/**", "lib/**", "package.json"],
+  "skip_brainstorming": true,
+  "skip_planning": false
+}
